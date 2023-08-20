@@ -28,17 +28,20 @@ class Frame:
 
     digital = [0] * 4
     seq = -1
+    dac = 0
 
     def __init__(self, num_channels):
         self.a = [0] * num_channels
         self.mv = [-1] * num_channels
+        self.dac = [0]
 
     def to_map(self):
         return {
             "sequence": self.seq,
             "analog": self.a,
             "digital": self.digital,
-            "mv": self.mv,
+            "dac": self.dac,
+            "mv": self.mv
         }
 
     def __str__(self):
@@ -47,12 +50,13 @@ class Frame:
         else:
             values = map(str, self.a)
 
-        return "{}\t{}\t{}\t{}\t{}\t{}".format(
+        return "{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
             self.seq,
             self.digital[0],
             self.digital[1],
             self.digital[2],
             self.digital[3],
+            self.dac,
             "\t".join(values),
         )
 
@@ -61,7 +65,8 @@ class Frame:
             return (
                 [self.seq]
                 + self.digital
+                + [self.dac]
                 + [val for pair in zip(self.a, self.mv) for val in pair]
             )
         else:
-            return [self.seq] + self.digital + self.a
+            return [self.seq] + self.digital + self.dac + self.a

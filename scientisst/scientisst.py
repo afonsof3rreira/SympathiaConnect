@@ -44,7 +44,7 @@ class ScientISST:
         log=False,
         api=API_MODE_SCIENTISST,
         connection_tries=5,
-        com_mode=COM_MODE_BT,
+        com_mode=COM_MODE_BT
     ):
         """
         Args:
@@ -73,6 +73,7 @@ class ScientISST:
         self.__sample_rate = None
         self.__chs = [None] * 8
         self.__log = False
+        self.dac_val = 0
 
         # Setup socket in function of com_mode argument
         self.__setupSocket()
@@ -268,7 +269,7 @@ class ScientISST:
 
                 result += result_tmp
                 start += 1
-                bf = result[start : start + self.__packet_size]
+                bf = result[start: start + self.__packet_size]
 
             f = Frame(self.__num_chs)
             frames.append(f)
@@ -277,6 +278,8 @@ class ScientISST:
                 f.seq = bf[-2] >> 4 | bf[-1] << 4
                 for i in range(4):
                     f.digital[i] = 0 if (bf[-3] & (0x80 >> i)) == 0 else 1
+
+                f.dac = self.dac_val
 
                 # Get channel values
                 byte_it = 0
@@ -321,6 +324,10 @@ class ScientISST:
                             f.mv[index] = self.__adc1_chars.esp_adc_cal_raw_to_voltage(
                                 f.a[index]
                             )
+
+                        # if i == self.__num_chs - 1 and self.include_dac:
+                        #     f.a[index] = int(self.dac_val)
+
             elif self.__api_mode == API_MODE_JSON:
                 print(bf)
             else:
@@ -425,6 +432,7 @@ class ScientISST:
 
         cmd |= raw << 8
         self.__send(cmd, nrOfBytes=2)
+        self.dac_val = raw
 
     # TODO: test with ScientISST Sense v2
     def state(self):

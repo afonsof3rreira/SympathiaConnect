@@ -234,7 +234,7 @@ class App(tk.Frame):
                         self.prev_data["channels"],
                         self.prev_data["raw"],
                         __version__,
-                        firmware_version,
+                        firmware_version
                     )
                 if self.prev_data["lsl"]:
                     pass
@@ -251,6 +251,7 @@ class App(tk.Frame):
                 stop_event = Event()
 
                 scientisst.start(self.prev_data["fs"], self.prev_data["channels"])
+
                 sys.stdout.write("Start acquisition\n")
 
                 # TODO: Initiate window within 2 seconds
@@ -302,7 +303,6 @@ class App(tk.Frame):
                 scientisst.disconnect()
 
             sys.exit(0)
-
 
         else:
             Warning("COM PORT not selected.")
