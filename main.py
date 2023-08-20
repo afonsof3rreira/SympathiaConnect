@@ -237,13 +237,14 @@ class App(tk.Frame):
                         firmware_version,
                     )
                 if self.prev_data["lsl"]:
-                    from sense_src.stream_lsl import StreamLSL
+                    pass
+                    # from sense_src.stream_lsl import StreamLSL
 
-                    lsl = StreamLSL(
-                        self.prev_data["channels"],
-                        self.prev_data["fs"],
-                        address,
-                    )
+                    # lsl = StreamLSL(
+                    #     self.prev_data["channels"],
+                    #     self.prev_data["fs"],
+                    #     address,
+                    # )
                 if self.prev_data["script"]:
                     script = get_custom_script(self.prev_data["script"])
 
