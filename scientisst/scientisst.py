@@ -431,6 +431,8 @@ class ScientISST:
             # Convert from voltage to raw:
             raw = int(voltage * 255 / 3.3)
         else:
+            cmd = 0xA3  # 1  0  1  0  0  0  1  1 - Set dac output
+
             raw = voltage
 
         cmd |= raw << 8
