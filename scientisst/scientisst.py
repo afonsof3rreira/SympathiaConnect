@@ -412,7 +412,7 @@ class ScientISST:
 
         self.__send(cmd)
 
-    def dac(self, voltage):
+    def dac(self, voltage, value_in_raw=False):
         """
         Assigns the analog (DAC) output value (ScientISST 2 only).
 
@@ -422,13 +422,16 @@ class ScientISST:
         Raises:
             InvalidParameterError: If the voltage value is outside of its range, 0-255.
         """
-        if voltage < 0 or voltage > 3.3:
-            raise InvalidParameterError()
+        if not value_in_raw:
+            if voltage < 0 or voltage > 3.3:
+                raise InvalidParameterError()
 
-        cmd = 0xA3  # 1  0  1  0  0  0  1  1 - Set dac output
+            cmd = 0xA3  # 1  0  1  0  0  0  1  1 - Set dac output
 
-        # Convert from voltage to raw:
-        raw = int(voltage * 255 / 3.3)
+            # Convert from voltage to raw:
+            raw = int(voltage * 255 / 3.3)
+        else:
+            raw = voltage
 
         cmd |= raw << 8
         self.__send(cmd, nrOfBytes=2)
