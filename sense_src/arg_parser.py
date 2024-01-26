@@ -22,7 +22,7 @@ class ArgParser:
             nargs="?",
             type=str,
             help="For BTH communication:\n\tLinux: BTH MAC address\n\tMac: serial port address\n\tWindows: BTH serial COM port\nFor TCP/UDP communication:\n\tAll plataforms: server port.",
-            default='COM13'
+            default='/dev/tty.ScientISST-48-7E'
         )
         self.parser.add_argument(
             "-f",
@@ -38,7 +38,7 @@ class ArgParser:
             dest="channels",
             type=str,
             help="analog channels, default: 1,2,3,4,5,6",
-            default="1,2,3,4,5,6",
+            default="1,7",
         )
         self.parser.add_argument(
             "-d",
@@ -46,7 +46,7 @@ class ArgParser:
             dest="duration",
             help="duration in seconds, default: unlimited",
             type=int,
-            default=0,
+            default=200,
         )
         self.parser.add_argument(
             "-o",
@@ -54,14 +54,14 @@ class ArgParser:
             dest="output",
             help="write report to output file, default: None",
             type=str,
-            default=None,
+            default="output.csv",
         )
         self.parser.add_argument(
             "-r",
             "--raw",
             action="store_false",
             dest="convert",
-            default=True,
+            default=False,
             help="do not convert from raw to mV",
         )
         self.parser.add_argument(
@@ -69,7 +69,7 @@ class ArgParser:
             "--lsl",
             dest="stream",
             action="store_true",
-            default=False,
+            default=True,
             help="stream data using Lab Streaming Layer protocol. Use `python -m pylsl.examples.ReceiveAndPlot` to view stream",
         )
         self.parser.add_argument(

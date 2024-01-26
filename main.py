@@ -21,6 +21,8 @@ from sense_src.file_writer import *
 
 import subprocess
 
+print(tk.TkVersion)
+
 def run_scheduled_task(duration, stop_event):
     def stop(stop_event):
         stop_event.set()
@@ -78,7 +80,7 @@ class App(tk.Frame):
         self.com_label.grid(row=0, column=0)
         self.com_var = tk.StringVar(self)
         self.com_var.set("")  # default value
-        self.com_dropdown = tk.OptionMenu(self, self.com_var, *self.get_available_ports(), command=self.select_port)
+        self.com_dropdown = tk.OptionMenu(self, self.com_var, *self.get_available_ports(), "", command=self.select_port)
         self.com_dropdown.grid(row=0, column=1)
 
         # TextBox Creation
@@ -143,6 +145,9 @@ class App(tk.Frame):
                 ser.close()
             except serial.SerialException:
                 pass
+        available_ports.append("/dev/tty.ScientISST-A0-EE")
+        available_ports.append("/dev/tty.ScientISST-A-5A")
+
         return available_ports
 
     def choose_file(self):
@@ -185,7 +190,7 @@ class App(tk.Frame):
 
             if int(self.time_input_2.get(1.0, "end-1c")) != self.prev_data['fs']:
                 self.prev_data['fs'] = int(self.time_input_2.get(1.0, "end-1c"))
-
+            print("com port is")
             print(self.com_port)
             print(self.prev_data)
 
@@ -213,6 +218,7 @@ class App(tk.Frame):
             # TODO: Re-update all fields
 
             # address, fs, duration OK
+            print(address)
 
             scientisst = ScientISST(address, com_mode=self.prev_data["mode"], log=self.prev_data["verbose"])
 
