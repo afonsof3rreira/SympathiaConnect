@@ -55,10 +55,10 @@ class FileWriter(ThreadBuilder):
         }
         if self.mv:
             metadata["Channels indexes raw"] = list(
-                map(lambda x: (x - 1) * 2 + 5, channels)
+                map(lambda x: (x - 1) * 2 + 6, channels)
             )
             metadata["Channels indexes mV"] = list(
-                map(lambda x: (x - 1) * 2 + 6, channels)
+                map(lambda x: (x - 1) * 2 + 7, channels)
             )
         else:
             metadata["Channels indexes"] = list(map(lambda x: x + 5, channels))
@@ -107,6 +107,6 @@ def get_channel_labels(channels, mv):
 
 
 def get_header(channels, mv):
-    header = ["NSeq", "I1", "I2", "O1", "O2"]
+    header = ["NSeq", "DAC", "I1", "I2", "O1", "O2"]
     header += get_channel_labels(channels, mv)
     return header

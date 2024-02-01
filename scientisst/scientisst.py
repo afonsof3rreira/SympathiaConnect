@@ -227,7 +227,19 @@ class ScientISST:
         else:
             self.__num_frames = self.__bytes_to_read // self.__packet_size
 
-    def read(self, convert=True, matrix=False):
+    def dac_control(self, dac_value, adc_ext_read):
+
+        self.scale_factor = 10 ** 3
+
+        dac_condition = 0 < dac_value < 255
+        if (adc_ext_read < 300000) and dac_condition:
+            dac_value -= 1
+        elif (adc_ext_read > 7000000) and dac_condition:
+            dac_value += 1
+        self.dac(dac_value, pwm=True)
+        return dac_value
+
+    def read(self, curr_dac_value=None, convert=True, matrix=False):
         """
         Reads acquisition frames from the device.
 
@@ -270,9 +282,16 @@ class ScientISST:
                 start += 1
                 bf = result[start : start + self.__packet_size]
 
+            #if curr_dac_value is not None:
+            #    f = Frame_UI(self.__num_chs)
+            #else:
             f = Frame(self.__num_chs)
+
             frames.append(f)
             if self.__api_mode == API_MODE_SCIENTISST:
+
+                f.dac = curr_dac_value
+
                 # Get seq number and IO states
                 f.seq = bf[-2] >> 4 | bf[-1] << 4
                 for i in range(4):
@@ -405,7 +424,7 @@ class ScientISST:
 
         self.__send(cmd)
 
-    def dac(self, voltage):
+    def dac(self, voltage, pwm=False):
         """
         Assigns the analog (DAC) output value (ScientISST 2 only).
 
@@ -415,13 +434,22 @@ class ScientISST:
         Raises:
             InvalidParameterError: If the voltage value is outside of its range, 0-255.
         """
-        if voltage < 0 or voltage > 3.3:
-            raise InvalidParameterError()
+        if not pwm:
+            if voltage < 0 or voltage > 3.3:
+                raise InvalidParameterError()
+
+        if pwm:
+            if voltage < 0 or voltage > 254:
+                raise InvalidParameterError()
 
         cmd = 0xA3  # 1  0  1  0  0  0  1  1 - Set dac output
 
-        # Convert from voltage to raw:
-        raw = int(voltage * 255 / 3.3)
+        if not pwm:
+            # Convert from voltage to raw:
+            raw = int(voltage * 255 / 3.3)
+
+        if pwm:
+            raw = int(voltage)
 
         cmd |= raw << 8
         self.__send(cmd, nrOfBytes=2)
