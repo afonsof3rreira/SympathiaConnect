@@ -6,12 +6,12 @@ from datetime import datetime
 
 class FileWriter(ThreadBuilder):
     def __init__(
-        self, filename, address, fs, channels, mv, api_version, firmware_version):
+        self, filename, address, fs, channels, mv, api_version, firmware_version
+    ):
         super().__init__()
         self.filename = filename
         self.mv = mv
         self.channels = channels
-
         self.metadata = self.__get_metadata(
             address, fs, channels, api_version, firmware_version
         )
@@ -40,9 +40,6 @@ class FileWriter(ThreadBuilder):
         self.f.write("#{}\n".format(header))
 
     def __get_metadata(self, address, fs, channels, api_version, firmware_version):
-
-        header = get_header(channels, self.mv)
-
         timestamp = datetime.now()
         metadata = {
             "API version": api_version,
@@ -50,7 +47,7 @@ class FileWriter(ThreadBuilder):
             "Channels labels": get_channel_labels(channels, self.mv),
             "Device": address,
             "Firmware version": firmware_version,
-            "Header": header,
+            "Header": get_header(channels, self.mv),
             "Resolution (bits)": [4, 1, 1, 1, 1] + self.__get_channel_resolutions(),
             "Sampling rate (Hz)": fs,
             "Timestamp": timestamp.timestamp(),
@@ -64,7 +61,7 @@ class FileWriter(ThreadBuilder):
                 map(lambda x: (x - 1) * 2 + 7, channels)
             )
         else:
-            metadata["Channels indexes"] = list(map(lambda x: x + 6, channels))
+            metadata["Channels indexes"] = list(map(lambda x: x + 5, channels))
 
         sorted_metadata = {}
         for key in sorted(metadata):
@@ -110,6 +107,6 @@ def get_channel_labels(channels, mv):
 
 
 def get_header(channels, mv):
-    header = ["NSeq", "I1", "I2", "O1", "O2", "DAC"]
+    header = ["NSeq", "DAC", "I1", "I2", "O1", "O2"]
     header += get_channel_labels(channels, mv)
     return header

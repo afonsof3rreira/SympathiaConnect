@@ -2,13 +2,11 @@ import csv
 import inspect
 import json
 import os
-
 import serial
 import time
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import threading
-
 import sys
 from scientisst import *
 from scientisst import __version__
@@ -18,7 +16,6 @@ from sense_src.arg_parser import ArgParser
 from sense_src.custom_script import get_custom_script, CustomScript
 from sense_src.device_picker import DevicePicker
 from sense_src.file_writer import *
-
 import subprocess
 
 print(tk.TkVersion)
@@ -30,7 +27,6 @@ def run_scheduled_task(duration, stop_event):
     timer = Timer(duration, stop, [stop_event])
     timer.start()
     return timer
-
 
 class App(tk.Frame):
 
@@ -47,6 +43,7 @@ class App(tk.Frame):
 
         parent_folder_path, _ = os.path.split(current_script)
         self.json_path = os.path.join(parent_folder_path, "prev_args.json")
+
         try:
             with open(self.json_path, 'r') as fp:
                 self.prev_data = json.load(fp)
@@ -190,6 +187,7 @@ class App(tk.Frame):
 
             if int(self.time_input_2.get(1.0, "end-1c")) != self.prev_data['fs']:
                 self.prev_data['fs'] = int(self.time_input_2.get(1.0, "end-1c"))
+
             print("com port is")
             print(self.com_port)
             print(self.prev_data)
@@ -222,7 +220,12 @@ class App(tk.Frame):
 
             scientisst = ScientISST(address, com_mode=self.prev_data["mode"], log=self.prev_data["verbose"])
 
-            scientisst.dac(self.prev_data['dac'])
+            scientisst.dac(self.prev_data['dac'], pwm=True)
+
+            #dac_controller = dac_control()
+
+            #dac_controller_thread = threading.Thread(target=dac_controller, args=())
+            #dac_controller_thread.start(target=dac_controller.update_dac, args= ())
 
             try:
                 if self.prev_data["output"]:
@@ -234,29 +237,29 @@ class App(tk.Frame):
                         self.prev_data["channels"],
                         self.prev_data["raw"],
                         __version__,
-                        firmware_version
+                        firmware_version,
                     )
-                if self.prev_data["lsl"]:
-                    pass
-                    # from sense_src.stream_lsl import StreamLSL
 
-                    # lsl = StreamLSL(
-                    #     self.prev_data["channels"],
-                    #     self.prev_data["fs"],
-                    #     address,
-                    # )
+                if self.prev_data["lsl"]:
+                    from sense_src.stream_lsl import StreamLSL
+
+                    lsl = StreamLSL(
+                        self.prev_data["channels"],
+                        self.prev_data["fs"],
+                        address,
+                    )
+
                 if self.prev_data["script"]:
                     script = get_custom_script(self.prev_data["script"])
 
                 stop_event = Event()
 
                 scientisst.start(self.prev_data["fs"], self.prev_data["channels"])
-
                 sys.stdout.write("Start acquisition\n")
 
                 # TODO: Initiate window within 2 seconds
-                rt_plot = threading.Thread(self.launch_receive_and_plot())
-                rt_plot.start()
+                #rt_plot = threading.Thread(self.launch_receive_and_plot())
+                #rt_plot.start()
 
                 if self.prev_data["output"]:
                     file_writer.start()
@@ -268,12 +271,16 @@ class App(tk.Frame):
                 timer = None
                 if self.prev_data["duration"] > 0:
                     timer = run_scheduled_task(self.prev_data["duration"], stop_event)
+
                 try:
                     if self.prev_data["verbose"]:
                         header = "\t".join(get_header(self.prev_data["channels"], self.prev_data["raw"])) + "\n"
                         sys.stdout.write(header)
+
                     while not stop_event.is_set():
-                        frames = scientisst.read(convert=self.prev_data["raw"])
+                        frames = scientisst.read(convert=self.prev_data["raw"], curr_dac_value=self.prev_data["dac"])
+                        self.prev_data["dac"] = scientisst.dac_control(dac_value=self.prev_data["dac"], adc_ext_read=frames[0].to_matrix()[6])
+
                         if self.prev_data["output"]:
                             file_writer.put(frames)
                         if self.prev_data["lsl"]:
@@ -316,6 +323,7 @@ class App(tk.Frame):
 
     def launch_receive_and_plot(self):
         time.sleep(2)
+
         try:
             subprocess.Popen(["python", "-m", "pylsl.examples.ReceiveAndPlot"])
         except subprocess.CalledProcessError as e:

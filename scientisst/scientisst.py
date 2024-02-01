@@ -44,7 +44,7 @@ class ScientISST:
         log=False,
         api=API_MODE_SCIENTISST,
         connection_tries=5,
-        com_mode=COM_MODE_BT
+        com_mode=COM_MODE_BT,
     ):
         """
         Args:
@@ -73,7 +73,6 @@ class ScientISST:
         self.__sample_rate = None
         self.__chs = [None] * 8
         self.__log = False
-        self.dac_val = 0
 
         # Setup socket in function of com_mode argument
         self.__setupSocket()
@@ -228,7 +227,19 @@ class ScientISST:
         else:
             self.__num_frames = self.__bytes_to_read // self.__packet_size
 
-    def read(self, convert=True, matrix=False):
+    def dac_control(self, dac_value, adc_ext_read):
+
+        self.scale_factor = 10 ** 3
+
+        dac_condition = 0 < dac_value < 255
+        if (adc_ext_read < 300000) and dac_condition:
+            dac_value -= 1
+        elif (adc_ext_read > 7000000) and dac_condition:
+            dac_value += 1
+        self.dac(dac_value, pwm=True)
+        return dac_value
+
+    def read(self, curr_dac_value=None, convert=True, matrix=False):
         """
         Reads acquisition frames from the device.
 
@@ -269,17 +280,22 @@ class ScientISST:
 
                 result += result_tmp
                 start += 1
-                bf = result[start: start + self.__packet_size]
+                bf = result[start : start + self.__packet_size]
 
+            #if curr_dac_value is not None:
+            #    f = Frame_UI(self.__num_chs)
+            #else:
             f = Frame(self.__num_chs)
+
             frames.append(f)
             if self.__api_mode == API_MODE_SCIENTISST:
+
+                f.dac = curr_dac_value
+
                 # Get seq number and IO states
                 f.seq = bf[-2] >> 4 | bf[-1] << 4
                 for i in range(4):
                     f.digital[i] = 0 if (bf[-3] & (0x80 >> i)) == 0 else 1
-
-                f.dac = self.dac_val
 
                 # Get channel values
                 byte_it = 0
@@ -324,10 +340,6 @@ class ScientISST:
                             f.mv[index] = self.__adc1_chars.esp_adc_cal_raw_to_voltage(
                                 f.a[index]
                             )
-
-                        # if i == self.__num_chs - 1 and self.include_dac:
-                        #     f.a[index] = int(self.dac_val)
-
             elif self.__api_mode == API_MODE_JSON:
                 print(bf)
             else:
@@ -412,7 +424,7 @@ class ScientISST:
 
         self.__send(cmd)
 
-    def dac(self, voltage, value_in_raw=False):
+    def dac(self, voltage, pwm=False):
         """
         Assigns the analog (DAC) output value (ScientISST 2 only).
 
@@ -422,22 +434,25 @@ class ScientISST:
         Raises:
             InvalidParameterError: If the voltage value is outside of its range, 0-255.
         """
-        if not value_in_raw:
+        if not pwm:
             if voltage < 0 or voltage > 3.3:
                 raise InvalidParameterError()
 
-            cmd = 0xA3  # 1  0  1  0  0  0  1  1 - Set dac output
+        if pwm:
+            if voltage < 0 or voltage > 254:
+                raise InvalidParameterError()
 
+        cmd = 0xA3  # 1  0  1  0  0  0  1  1 - Set dac output
+
+        if not pwm:
             # Convert from voltage to raw:
             raw = int(voltage * 255 / 3.3)
-        else:
-            cmd = 0xA3  # 1  0  1  0  0  0  1  1 - Set dac output
 
-            raw = voltage
+        if pwm:
+            raw = int(voltage)
 
         cmd |= raw << 8
         self.__send(cmd, nrOfBytes=2)
-        self.dac_val = raw
 
     # TODO: test with ScientISST Sense v2
     def state(self):
@@ -710,16 +725,3 @@ class ScientISST:
             self.__serial.timeout = TIMEOUT_IN_SECONDS
         else:
             raise InvalidParameterError()
-
-    def number_of_frames(self):
-        """Gets the number of frames of an instantiated ScientISST device.
-
-            Returns:
-                self.__num_frames (int): Number of frames
-
-        Raises:
-            ContactingDeviceError: If there is an error contacting the device."""
-        try:
-            return self.__num_frames
-        except:
-            raise ContactingDeviceError()
