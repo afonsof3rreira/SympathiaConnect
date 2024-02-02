@@ -222,11 +222,6 @@ class App(tk.Frame):
 
             scientisst.dac(self.prev_data['dac'], pwm=True)
 
-            #dac_controller = dac_control()
-
-            #dac_controller_thread = threading.Thread(target=dac_controller, args=())
-            #dac_controller_thread.start(target=dac_controller.update_dac, args= ())
-
             try:
                 if self.prev_data["output"]:
                     firmware_version = scientisst.version_and_adc_chars(print=True)
@@ -258,8 +253,8 @@ class App(tk.Frame):
                 sys.stdout.write("Start acquisition\n")
 
                 # TODO: Initiate window within 2 seconds
-                #rt_plot = threading.Thread(self.launch_receive_and_plot())
-                #rt_plot.start()
+                rt_plot = threading.Thread(self.launch_receive_and_plot())
+                rt_plot.start()
 
                 if self.prev_data["output"]:
                     file_writer.start()
@@ -272,6 +267,8 @@ class App(tk.Frame):
                 if self.prev_data["duration"] > 0:
                     timer = run_scheduled_task(self.prev_data["duration"], stop_event)
 
+                tick = 0
+
                 try:
                     if self.prev_data["verbose"]:
                         header = "\t".join(get_header(self.prev_data["channels"], self.prev_data["raw"])) + "\n"
@@ -279,7 +276,8 @@ class App(tk.Frame):
 
                     while not stop_event.is_set():
                         frames = scientisst.read(convert=self.prev_data["raw"], curr_dac_value=self.prev_data["dac"])
-                        self.prev_data["dac"] = scientisst.dac_control(dac_value=self.prev_data["dac"], adc_ext_read=frames[0].to_matrix()[6])
+
+                        self.prev_data["dac"] = scientisst.dac_control(self.prev_data["dac"], frames, tick)
 
                         if self.prev_data["output"]:
                             file_writer.put(frames)
@@ -289,6 +287,8 @@ class App(tk.Frame):
                             script.put(frames)
                         if self.prev_data["verbose"]:
                             sys.stdout.write("{}\n".format(frames[0]))
+
+                        tick += 1
                 except KeyboardInterrupt:
                     if self.prev_data["duration"] and timer:
                         timer.cancel()
@@ -322,7 +322,7 @@ class App(tk.Frame):
         self.master.destroy()
 
     def launch_receive_and_plot(self):
-        time.sleep(2)
+        time.sleep(1)
 
         try:
             subprocess.Popen(["python", "-m", "pylsl.examples.ReceiveAndPlot"])

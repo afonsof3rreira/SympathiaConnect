@@ -13,6 +13,7 @@ import re
 from math import log2
 import numpy as np
 
+from scientisst.dac_control_st import unpack_frame_arr
 from scientisst.frame import *
 from scientisst.state import *
 from scientisst.exceptions import *
@@ -227,16 +228,22 @@ class ScientISST:
         else:
             self.__num_frames = self.__bytes_to_read // self.__packet_size
 
-    def dac_control(self, dac_value, adc_ext_read):
+    def dac_control(self, dac_value, frames, tick):
 
-        self.scale_factor = 10 ** 3
+        if tick % 5 == 0:
 
-        dac_condition = 0 < dac_value < 255
-        if (adc_ext_read < 300000) and dac_condition:
-            dac_value -= 1
-        elif (adc_ext_read > 7000000) and dac_condition:
-            dac_value += 1
-        self.dac(dac_value, pwm=True)
+            dac_vals_arr = unpack_frame_arr(frames, idx_extract=6)
+            adc_ext_read = np.mean(dac_vals_arr)
+
+            self.scale_factor = 10 ** 3
+
+            dac_condition = 0 < dac_value < 255
+            if (adc_ext_read < 300000) and dac_condition:
+                dac_value -= 1
+            elif (adc_ext_read > 7000000) and dac_condition:
+                dac_value += 1
+            self.dac(dac_value, pwm=True)
+
         return dac_value
 
     def read(self, curr_dac_value=None, convert=True, matrix=False):

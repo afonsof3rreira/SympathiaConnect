@@ -1,1 +1,1 @@
-{"address": "/dev/tty.ScientISST-A-5A", "fs": 1000, "channels": 7, "duration": 300, "output": "output.csv", "raw": null, "lsl": null, "script": null, "quiet": null, "version": null, "verbose": "True", "mode": "bt_classic", "dac": 155}
+{"address": "/dev/tty.ScientISST-A-5A", "fs": 1000, "channels": 7, "duration": 300, "output": "output.csv", "raw": null, "lsl": "True", "script": null, "quiet": null, "version": null, "verbose": "True", "mode": "bt_classic", "dac": 155}
