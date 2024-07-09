@@ -171,13 +171,8 @@ class App(tk.Frame):
             except serial.SerialException:
                 pass
 
-        # available_ports.append("/dev/tty.ScientISST-A0:EE")
-        # available_ports.append("/dev/tty.ScientISST-A-5A")
-        # available_ports.append("/dev/tty.ScientISST-DF-E")
-        # available_ports.append("/dev/tty.ScientISST-F-96")
-        # available_ports.append("/dev/tty.ScientISST-3-A6")
-        # available_ports.append("/dev/tty.ScientISST-4-E")
-        # available_ports.append("/dev/tty.ScientISST-282E")
+        # TODO: If something goes wrong, manually add the COM Ports here
+        # available_ports.append("my-com-port")
 
         return available_ports
 
@@ -352,6 +347,11 @@ class App(tk.Frame):
 
     def on_closing(self):
         self.overwrite_jsonfile()
+
+        # Clean up the subprocess if it exists
+        if self.launch_process:
+            self.launch_process.terminate()
+
         self.master.destroy()
 
     def overwrite_jsonfile(self):
@@ -365,7 +365,7 @@ class App(tk.Frame):
         time.sleep(1)
 
         try:
-            subprocess.Popen(["python", "-m", "pylsl.examples.ReceiveAndPlot"])
+            self.launch_process = subprocess.Popen(["python", "-m", "pylsl.examples.ReceiveAndPlot"])
         except subprocess.CalledProcessError as e:
             print("Error:", e)
 
