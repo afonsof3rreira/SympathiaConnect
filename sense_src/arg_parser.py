@@ -22,7 +22,7 @@ class ArgParser:
             nargs="?",
             type=str,
             help="For BTH communication:\n\tLinux: BTH MAC address\n\tMac: serial port address\n\tWindows: BTH serial COM port\nFor TCP/UDP communication:\n\tAll plataforms: server port.",
-            default='/dev/tty.ScientISST-48-7E'
+            default='/dev/tty.ScientISST-DF-E'
         )
         self.parser.add_argument(
             "-f",

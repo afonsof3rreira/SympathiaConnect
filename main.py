@@ -1,4 +1,5 @@
 import csv
+import glob
 import inspect
 import json
 import os
@@ -76,47 +77,60 @@ class App(tk.Frame):
         self.com_label = tk.Label(self, text="Select COM Port:")
         self.com_label.grid(row=0, column=0)
         self.com_var = tk.StringVar(self)
-        self.com_var.set("")  # default value
-        self.com_dropdown = tk.OptionMenu(self, self.com_var, *self.get_available_ports(), "", command=self.select_port)
+
+        print(self.prev_data['address'])
+        if self.prev_data['address'] is not None:
+            self.com_var.set(self.prev_data['address'])
+        else:
+            self.com_var.set("")  # default value
+
+        self.com_dropdown = tk.OptionMenu(self, self.com_var, *self.get_available_ports(), command=self.select_port)
         self.com_dropdown.grid(row=0, column=1)
 
         # TextBox Creation
-        self.time_input_1_label = tk.Label(self, text="Duration")
-        self.time_input_1_label.grid(row=1, column=0)
+        self.duration_label = tk.Label(self, text="Duration (seconds)")
+        self.duration_label.grid(row=1, column=0)
 
-        self.time_input_1 = tk.Text(self, height=1, width=5)
+        self.duration_entry = tk.Text(self, height=1, width=5)
 
         if self.prev_data['duration'] is not None:
-            self.time_input_1.insert("1.0", self.prev_data['duration'])
+            self.duration_entry.insert("1.0", self.prev_data['duration'])
 
-        self.time_input_1.grid(row=2, column=0)
+        self.duration_entry.grid(row=2, column=0)
 
-        self.time_input_2_label = tk.Label(self, text="Sampling rate")
-        self.time_input_2_label.grid(row=1, column=1)
+        self.sr_label = tk.Label(self, text="Sampling rate (Hz)")
+        self.sr_label.grid(row=1, column=1)
 
-        self.time_input_2 = tk.Text(self, height=1, width=5)
-        self.time_input_2.grid(row=2, column=1)
+        self.sr_entry = tk.Text(self, height=1, width=5)
+        self.sr_entry.grid(row=2, column=1)
 
         if self.prev_data['fs'] is not None:
-            self.time_input_2.insert("1.0", self.prev_data['fs'])
+            self.sr_entry.insert("1.0", self.prev_data['fs'])
 
-        self.enabled_channels_label = tk.Label(self, text="Channels list")
-        self.enabled_channels_label.grid(row=3, column=0)
+        self.channels_label = tk.Label(self, text="Channels list (e.g. 1,2,3)")
+        self.channels_label.grid(row=3, column=0)
 
-        self.enabled_channels = tk.Text(self, height=1, width=15)
-        self.enabled_channels.grid(row=4, column=0)
+        def validate_channels(new_value):
+            if new_value == "":
+                return True
+            if all(part.isdigit() for part in new_value.split(',')):
+                return True
+            return False
+
+        self.channels_entry = tk.Text(self, height=1, width=15)
+        self.channels_entry.grid(row=4, column=0)
+
+        if self.prev_data['channels'] is not None:
+            self.channels_entry.insert("1.0", self.prev_data['channels'])
 
         self.dac_value_label = tk.Label(self, text="DAC value")
         self.dac_value_label.grid(row=3, column=1)
 
-        self.dac_value = tk.Text(self, height=1, width=5)
-        self.dac_value.grid(row=4, column=1)
-
-        if self.prev_data['channels'] is not None:
-            self.enabled_channels.insert("1.0", self.prev_data['channels'])
+        self.dac_value_entry = tk.Text(self, height=1, width=5)
+        self.dac_value_entry.grid(row=4, column=1)
 
         if self.prev_data["dac"] is not None:
-            self.dac_value.insert("1.0", self.prev_data['dac'])
+            self.dac_value_entry.insert("1.0", self.prev_data['dac'])
 
         # Create the start button
         self.start_button = tk.Button(self, text="Start Transmission", command=self.start_experiment)
@@ -125,16 +139,18 @@ class App(tk.Frame):
 
     def select_port(self, widget):
 
-        self.com_port = self.com_var.get()
-        print(self.com_port)
+        # store the new COM PORT
+        self.prev_data['address'] = self.com_var.get()
 
-        if not self.com_port:
+        if not self.com_var.get():
             tk.messagebox.showerror("Error", "Please select a COM port")
             return
 
     def get_available_ports(self):
         # Returns a list of available COM ports
         available_ports = []
+
+        # Windows
         for i in range(256):
             try:
                 ser = serial.Serial("COM{}".format(i))
@@ -142,8 +158,26 @@ class App(tk.Frame):
                 ser.close()
             except serial.SerialException:
                 pass
-        available_ports.append("/dev/tty.ScientISST-A0-EE")
-        available_ports.append("/dev/tty.ScientISST-A-5A")
+
+        # Linux
+        # List all the available serial ports
+        ports = glob.glob('/dev/tty.*') + glob.glob('/dev/cu.*')
+
+        for port in ports:
+            try:
+                ser = serial.Serial(port)
+                available_ports.append(ser.portstr)
+                ser.close()
+            except serial.SerialException:
+                pass
+
+        # available_ports.append("/dev/tty.ScientISST-A0:EE")
+        # available_ports.append("/dev/tty.ScientISST-A-5A")
+        # available_ports.append("/dev/tty.ScientISST-DF-E")
+        # available_ports.append("/dev/tty.ScientISST-F-96")
+        # available_ports.append("/dev/tty.ScientISST-3-A6")
+        # available_ports.append("/dev/tty.ScientISST-4-E")
+        # available_ports.append("/dev/tty.ScientISST-282E")
 
         return available_ports
 
@@ -155,20 +189,24 @@ class App(tk.Frame):
 
     def start_experiment(self):
 
-        if isinstance(self.com_port, str):
+
+        print("over-written")
+
+        if isinstance(self.com_var.get(), str):
 
             arg_parser = ArgParser()
             args = arg_parser.args
 
+
             # First, check if any data in the text boxes is different from the ones in the input
-            if int(self.time_input_1.get(1.0, "end-1c")) != self.prev_data['duration']:
-                self.prev_data['duration'] = int(self.time_input_1.get(1.0, "end-1c"))
+            if int(self.duration_entry.get(1.0, "end-1c")) != self.prev_data['duration']:
+                self.prev_data['duration'] = int(self.duration_entry.get(1.0, "end"))
 
-            if int(self.time_input_2.get(1.0, "end-1c")) != self.prev_data['fs']:
-                self.prev_data['fs'] = int(self.time_input_2.get(1.0, "end-1c"))
+            if int(self.sr_entry.get(1.0, "end-1c")) != self.prev_data['fs']:
+                self.prev_data['fs'] = int(self.sr_entry.get(1.0, "end"))
 
-            if float(self.dac_value.get(1.0, "end-1c")) != self.prev_data['dac']:
-                self.prev_data['dac'] = float(self.dac_value.get(1.0, "end-1c"))
+            if int(self.dac_value_entry.get(1.0, "end-1c")) != self.prev_data['dac']:
+                self.prev_data['dac'] = int(self.dac_value_entry.get(1.0, "end"))
 
             def are_all_integers(lst):
                 for item in lst:
@@ -177,23 +215,19 @@ class App(tk.Frame):
                 return True
 
             try:
-                input_channels_str = self.enabled_channels.get(1.0, "end-1c").split(",")
+                input_channels_str = self.channels_entry.get(1.0, "end").replace("\n", "").split(",")
                 input_channels_list = [int(num) for num in input_channels_str]
                 if are_all_integers(input_channels_list):
-                    self.prev_data['channels'] = self.enabled_channels.get(1.0, "end-1c")
+                    self.prev_data['channels'] = self.channels_entry.get(1.0, "end").replace("\n", "")
 
             except:
                 pass
 
-            if int(self.time_input_2.get(1.0, "end-1c")) != self.prev_data['fs']:
-                self.prev_data['fs'] = int(self.time_input_2.get(1.0, "end-1c"))
+            if self.com_var.get() != self.prev_data['address']:
+                self.prev_data['address'] = self.com_var.get()
 
-            print("com port is")
-            print(self.com_port)
-            print(self.prev_data)
-
-            if self.com_port != self.prev_data['address']:
-                self.prev_data['address'] = self.com_port
+            # first thing before actually starting is to save the json file
+            self.overwrite_jsonfile()
 
             # ORIGINAL CODE...
             if self.prev_data["version"]:
@@ -218,9 +252,10 @@ class App(tk.Frame):
             # address, fs, duration OK
             print(address)
 
-            scientisst = ScientISST(address, com_mode=self.prev_data["mode"], log=self.prev_data["verbose"])
+            scientisst = ScientISST(address, com_mode=self.prev_data["mode"], log=True)
 
             scientisst.dac(self.prev_data['dac'], pwm=True)
+            # scientisst.trigger([1, 2])
 
             try:
                 if self.prev_data["output"]:
@@ -278,6 +313,7 @@ class App(tk.Frame):
                         frames = scientisst.read(convert=self.prev_data["raw"], curr_dac_value=self.prev_data["dac"])
 
                         self.prev_data["dac"] = scientisst.dac_control(self.prev_data["dac"], frames, tick)
+                        # scientisst.trigger([1, 2])
 
                         if self.prev_data["output"]:
                             file_writer.put(frames)
@@ -315,13 +351,17 @@ class App(tk.Frame):
             Warning("COM PORT not selected.")
 
     def on_closing(self):
+        self.overwrite_jsonfile()
+        self.master.destroy()
+
+    def overwrite_jsonfile(self):
+        """Overwrites the json data."""
 
         with open(self.json_path, 'w') as fp:
             json.dump(self.prev_data, fp)
 
-        self.master.destroy()
-
     def launch_receive_and_plot(self):
+        print("Launching plot------------------------")
         time.sleep(1)
 
         try:
