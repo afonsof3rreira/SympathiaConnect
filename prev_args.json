@@ -1,1 +1,11 @@
-{"address": "/dev/tty.BoseMicroSoundLink", "fs": 1000, "channels": "1,3,7", "duration": 10, "output": "output.csv", "raw": null, "lsl": "True", "script": null, "quiet": null, "version": null, "verbose": "True", "mode": "bt_classic", "dac": 155}
+{"address": "/dev/tty.ScientISST-DF-E",
+  "fs": 20,
+  "ACC_enable": false,
+  "EDA_enable": true,
+  "duration_h": 0,
+  "duration_m": 1,
+  "duration_s": 0,
+  "lsl": true,
+  "version": null,
+  "verbose": false,
+  "dac": 160}

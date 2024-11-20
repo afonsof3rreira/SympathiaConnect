@@ -44,8 +44,9 @@ class ScientISST:
         serial_speed=115200,
         log=False,
         api=API_MODE_SCIENTISST,
-        connection_tries=5,
+        connection_tries=1,
         com_mode=COM_MODE_BT,
+        connection_error=None,
     ):
         """
         Args:
@@ -79,16 +80,22 @@ class ScientISST:
         self.__setupSocket()
 
         # try to connect to board
+        connection_total_tries = connection_tries
+
         while True:
             try:
                 # Set API mode
                 self.__changeAPI(api)
                 # get device version string and adc characteristics
                 self.version_and_adc_chars()
+                connection_error = False
                 break
+
             except ContactingDeviceError:
                 if connection_tries > 0:
                     connection_tries -= 1
+                    print("Connection try {}".format(str(connection_total_tries - connection_tries)))
+
                 else:
                     raise ContactingDeviceError()
 
@@ -207,9 +214,15 @@ class ScientISST:
             cmd = 0x01
         cmd |= chMask << 8
 
+        print("binary representation of the channel sent command")
+        print(cmd)
+
         self.__send(cmd)
 
         self.__packet_size = self.__getPacketSize()
+
+        print("packet size")
+        print(self.__packet_size)
 
         self.__bytes_to_read = self.__packet_size * max(
             sample_rate // reads_per_second, 1
@@ -228,20 +241,19 @@ class ScientISST:
         else:
             self.__num_frames = self.__bytes_to_read // self.__packet_size
 
-    def dac_control(self, dac_value, frames, tick):
+    def dac_control(self, dac_value, frames, tick, idx_to_extract):
 
         if tick % 5 == 0:
 
-            dac_vals_arr = unpack_frame_arr(frames, idx_extract=6)
+            dac_vals_arr = unpack_frame_arr(frames, idx_extract=idx_to_extract)
             adc_ext_read = np.mean(dac_vals_arr)
-
-            self.scale_factor = 10 ** 3
 
             dac_condition = 0 < dac_value < 255
             if (adc_ext_read < 300000) and dac_condition:
                 dac_value -= 1
             elif (adc_ext_read > 7000000) and dac_condition:
                 dac_value += 1
+
             self.dac(dac_value, pwm=True)
 
         return dac_value
@@ -297,7 +309,8 @@ class ScientISST:
             frames.append(f)
             if self.__api_mode == API_MODE_SCIENTISST:
 
-                f.dac = curr_dac_value
+                if curr_dac_value:
+                    f.dac = curr_dac_value
 
                 # Get seq number and IO states
                 f.seq = bf[-2] >> 4 | bf[-1] << 4

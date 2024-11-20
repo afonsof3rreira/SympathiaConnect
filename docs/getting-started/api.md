@@ -29,7 +29,6 @@ scientisst.start(100, [1, 2, 3])
 
 for i in range(50):
     frames = scientisst.read()
-    print(frames[0])
 
 scientisst.stop()
 ```

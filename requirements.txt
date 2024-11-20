@@ -1,5 +1,7 @@
-pyserial
-pylsl
+pyserial~=3.5
+pylsl~=1.16.2
 dbus-python
-numpy
-matplotlib
+numpy~=1.24.4
+matplotlib~=3.7.2
+
+pillow~=10.0.0
