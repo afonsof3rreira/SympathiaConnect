@@ -6,13 +6,13 @@ import tkinter as tk
 import threading
 from tkinter import messagebox
 import darkdetect
-from LSL_plotting import open_lsl_plot
-from acquisition import Acquisition
+from LSL_plotting_MacOS import open_lsl_plot
+from acquisition_MacOS import Acquisition
 from scientisst import *
-from utilities import load_icon, get_root_project_path, colors, read_params, write_params
+from utilities import load_icon, get_root_project_path, colors, read_params, write_params, open_user_guide
 from utils.input_validation import validate_time_in, validate_fs_in, validate_dac_in
 from utils.scientisst_actions import led_pulse
-from utils.bluetooth import ConnectionStatus, get_available_ports
+from utils.bluetooth_MacOS import ConnectionStatus, get_available_ports
 from PIL import ImageTk  # For working with images (e.g., PNG)
 
 class App(tk.Frame):
@@ -25,7 +25,7 @@ class App(tk.Frame):
         AI5: Z axis accelerometer!
         AI6: testing
     """
-    def __init__(self, master=None, os_type='Windows', icon_file=None, ld_theme=None):
+    def __init__(self, master=None, root_path=None, os_type='Windows', icon_file=None, ld_theme=None):
 
         # TODO: Next steps: make the scientISST acquisition through the API be run in "parallel" (threading) with respect to the tkinter App so that its buttons don't freeze
         #  TODO: Integrate and test the button to generate the pulse signal
@@ -34,6 +34,7 @@ class App(tk.Frame):
 
         self.os_type = os_type
         self.scientisst = None
+        self.root_path = root_path
 
         if ld_theme is None:
             self.ld_theme = "Light"
@@ -66,7 +67,7 @@ class App(tk.Frame):
                 "lsl": None,
                 "version": None,
                 "verbose": None,
-                "dac": None,
+                "dac": 165,
             }
 
         self.master.protocol("WM_DELETE_WINDOW", lambda: self.on_closing())
@@ -150,12 +151,17 @@ class App(tk.Frame):
         menubar = tk.Menu(self.master)
 
         # Adding Help Menu
-        help_ = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label='Help', menu=help_)
-        help_.add_command(label='About', command=self.show_about)
-        help_.add_separator()
+        self.help_ = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label='Help', menu=self.help_)
+        self.help_.add_command(label='Open User Guide', command=self.open_user_guide)
+        self.help_.add_command(label='About', command=self.show_about)
+        self.help_.add_separator()
 
         self.master["menu"] = menubar
+
+    def open_user_guide(self):
+        pdf_path = os.path.join(self.root_path, "rsc", "user_guide.pdf")
+        open_user_guide(pdf_path)
 
     def toggle_mode(self):
 
@@ -173,33 +179,35 @@ class App(tk.Frame):
             "Version: 1.0.0\n\n"
             "Developed by Sympathia Technologies\n"
             "© 2024 Sympathia Technologies. All rights reserved.\n\n"
-            "Made by those that use their head to live with heart."
+            "Made by those that use their head to live with heart.\n\n"
+            "For support, contact us at: info@sympathiatech.com"
         )
 
     def update_bt_dropdown(self):
         # Get the latest Bluetooth devices list
-        bt_devices = get_available_ports(self.os_type)
-        print(bt_devices)
+        self.bt_devices_pair = get_available_ports(self.os_type)
 
-        # Set the default BT device
-        if bt_devices:
+        # if dict is not empty
+        if self.bt_devices_pair:
 
             # if the previosuly used device is On, then it should be auto-selected
-            if self.user_parameters["address"] in bt_devices:
-                self.bt_var.set(self.user_parameters["address"])
+            for k, v in self.bt_devices_pair.items():
+                if self.user_parameters["address"] == v:
+                    self.bt_var.set(k)
 
             # else, it should be the first showing up
             else:
-                self.bt_var.set(bt_devices[0])
+                self.bt_var.set(list(self.bt_devices_pair.keys())[0])
 
+            bt_devices_pair = list(self.bt_devices_pair.keys())
         # else, empty
         else:
             self.bt_var.set("No Dev. Found")
-            bt_devices = ['No Dev. Found']
+            bt_devices_pair = ['No Dev. Found']
 
         print(self.bt_var.get())
         # Create OptionMenu with updated device list
-        self.bt_dropdown = tk.OptionMenu(self, self.bt_var, *bt_devices, command=self.on_bt_selected)
+        self.bt_dropdown = tk.OptionMenu(self, self.bt_var, *bt_devices_pair, command=self.on_bt_selected)
         self.bt_dropdown.grid(row=1 + self.row_offset, column=1)
         self.bt_dropdown.config(font=('Roboto', 12, 'bold'))
         self.bt_dropdown.config(fg=colors['Light']['text'])  # fixed
@@ -215,7 +223,9 @@ class App(tk.Frame):
         # This function is called when an option is selected in the OptionMenu
         print(f"Selected Bluetooth Device: {selected_device}")
         # Update the user parameters with the selected device
-        self.user_parameters["address"] = selected_device
+
+        self.user_parameters["address"] = self.bt_devices_pair[selected_device]
+
         # Optionally, set the bt_var to the selected device as well
         self.bt_var.set(selected_device)
 
@@ -368,6 +378,8 @@ class App(tk.Frame):
 
             self.ac_process = Acquisition(self.user_parameters, self.launch_receive_and_plot)
 
+            print(self.user_parameters)
+
             acquisition_cycle_thread = threading.Thread(target=self.ac_process.acquisition_cycle)
             acquisition_cycle_thread.start()
 
@@ -404,8 +416,8 @@ class App(tk.Frame):
         if int(self.dac_value_entry.get()) != self.user_parameters['dac']:
             self.user_parameters['dac'] = int(self.dac_value_entry.get())
 
-        if self.bt_var.get() != self.user_parameters['address']:
-            self.user_parameters['address'] = self.bt_var.get()
+        if self.bt_devices_pair[self.bt_var.get()] != self.user_parameters['address']:
+            self.user_parameters['address'] = self.bt_devices_pair[self.bt_var.get()]
 
 
     def on_closing(self):
@@ -430,7 +442,7 @@ class App(tk.Frame):
         p = multiprocessing.Process(target=open_lsl_plot, args=(self.user_parameters['fs'], self.user_parameters['EDA_enable'], self.user_parameters['ACC_enable'], self.ld_theme))
         p.start()
 
-def App_UI(os_type='Windows', debug=False):
+def App_UI_MacOS(debug=False):
 
     root_path = get_root_project_path(debug=debug)
     rsc_path = os.path.join(root_path, 'rsc')
@@ -438,7 +450,7 @@ def App_UI(os_type='Windows', debug=False):
     root = tk.Tk()
 
     ld_theme = darkdetect.theme()  # Returns 'light' or 'dark'
-    icon_img = load_icon(rsc_path, os_type, ld_theme=ld_theme)
+    icon_img = load_icon(rsc_path, 'MacOS', ld_theme=ld_theme)
     # Convert the image to a Tkinter compatible format
 
     # Set the window icon using 'wm' command
@@ -446,7 +458,7 @@ def App_UI(os_type='Windows', debug=False):
     root.rowconfigure(0, weight=1)
     root.title("Sympathia Connect")
 
-    app = App(master=root, os_type=os_type, icon_file=icon_img, ld_theme=ld_theme)
+    app = App(master=root, root_path=root_path, os_type='MacOS', icon_file=icon_img, ld_theme=ld_theme)
     app.update_connection_status()
 
     root.geometry("450x380")  # Set the fixed size of the window (width x height)

@@ -2,8 +2,9 @@ import platform
 from PIL import Image
 import os
 import sys
-
-from utils.bluetooth import ConnectionStatus
+import subprocess
+import sys
+from utils.bluetooth_MacOS import ConnectionStatus
 
 colors = {'Light':
               {'plots':
@@ -16,7 +17,9 @@ colors = {'Light':
                'status': {ConnectionStatus.DISCONNECTED: '#ff5029',
                           ConnectionStatus.CONNECTING: '#ffa500',
                           ConnectionStatus.CONNECTED: '#008c05',
-                          ConnectionStatus.ACQUIRING: '#2930ff'}
+                          ConnectionStatus.ACQUIRING: '#2930ff'},
+               'Windows_fg': "black",
+               'Windows_bg': "#F0F0F0"
                },
           'Dark':
               {'plots':
@@ -30,9 +33,20 @@ colors = {'Light':
                      ConnectionStatus.CONNECTING: '#f8d877',
                      ConnectionStatus.CONNECTED: '#8df877',
                      ConnectionStatus.ACQUIRING: '#77aaf8'
-                     }
+                     },
+               'Windows_fg': "white",
+               'Windows_bg': "#202020"
                }
           }
+
+
+def open_user_guide(file_path):
+    if sys.platform == 'win32':
+        os.startfile(file_path)  # For Windows
+    elif sys.platform == 'darwin':
+        subprocess.run(['open', file_path])  # For macOS
+    else:
+        subprocess.run(['xdg-open', file_path])  # For Linux
 
 def compute_time_seconds(u_params):
 

@@ -4,6 +4,12 @@ import threading
 import time
 from enum import Enum
 import serial
+import serial.tools.list_ports
+import re
+
+from sense_src.device_picker import DevicePicker
+from utils.bluetooth_Windows import get_COM_ports_Windows
+
 
 class ConnectionStatus(Enum):
     """Connection status:
@@ -26,20 +32,14 @@ def hard_bt_reconnect(user_parameters):
 
     while not connected:
         connected = connect_to_device(mac_address)
+
 def get_available_ports(os_type: str):
     # Returns a list of available COM ports
-    available_ports = []
+    port_pair = {}
 
     # Windows
     if os_type == 'Windows':
-        for i in range(256):
-            try:
-                ser = serial.Serial("COM{}".format(i))
-                if 'ScientISST' in ser.portstr:  # Check if 'ScientISST' is in the port name
-                    available_ports.append(ser.portstr)
-                ser.close()
-            except serial.SerialException:
-                pass
+        port_pair = get_COM_ports_Windows()
 
     # Linux and MacOS
     elif os_type in ["MacOS", "Linux"]:
@@ -50,16 +50,17 @@ def get_available_ports(os_type: str):
         for port in ports:
             try:
                 ser = serial.Serial(port)
-                if 'ScientISST' in ser.portstr:  # Check if 'ScientISST' is in the port name
-                    available_ports.append(ser.portstr)
+                port_name = ser.portstr
+                if 'ScientISST' in port_name:  # Check if 'ScientISST' is in the port name
+                    short_addr = port_name.split('ScientISST')[-1]
+                    short_addr = 'ScientISST' + short_addr
+
+                    port_pair[short_addr] = port_name
                 ser.close()
             except serial.SerialException:
                 pass
 
-    # TODO: If something goes wrong, manually add the COM Ports here
-    # available_ports.append("my-com-port")
-
-    return available_ports
+    return port_pair
 
 def reset_BT():
     bt_reset = threading.Thread(target=_reset_BT)

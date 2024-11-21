@@ -7,10 +7,10 @@ from scientisst import ScientISST, __version__
 from sense_src.device_picker import DevicePicker
 from sense_src.file_writer import FileWriter, get_header
 from utilities import compute_time_seconds
-from utils.bluetooth import ConnectionStatus, _reset_BT, hard_bt_reconnect
+from utils.bluetooth_MacOS import ConnectionStatus, _reset_BT, hard_bt_reconnect
 import os
 from utils.data import create_exp_folder, clean_up_folder
-
+import tkinter as tk
 
 def run_scheduled_task(duration, stop_event):
     def stop(stop_event):
@@ -26,19 +26,18 @@ class Acquisition:
     def __init__(self, user_parameters: dict, plot_thread_callback):
         self.user_parameters = user_parameters
         self.plot_thread_callback = plot_thread_callback
-        self.acquisition_done = False  # Flag to indicate completion
 
     def get_connection_status(self):
         return self.connection_status
 
-    def acquisition_cycle(self):
-        self.acquisition_done = True  # Mark cycle as done
+    def acquisition_cycle(self, start_exp_btn):
 
         self.connection_error = True
+        self.start_exp_btn = start_exp_btn
 
+        self.start_exp_btn.config(state=tk.DISABLED)
 
         first_acquisition = True
-
         ac_index = 0
 
         while ac_index < 2:
@@ -59,14 +58,14 @@ class Acquisition:
                 clean_up_folder(folder_path, file_path)
                 ac_index += 1
 
-                # print(f"An error occurred during acquisition: {e}")
-
             if self.connection_error:
-                _reset_BT()
-                hard_bt_reconnect(self.user_parameters)
+                print("Connection Error")
 
             else:
                 first_acquisition = False
+
+        self.connection_status = ConnectionStatus.DISCONNECTED
+        self.start_exp_btn.config(state=tk.NORMAL)
 
 
     def start_acquisition(self, first_acquisition, folder_path, file_path):
@@ -125,7 +124,6 @@ class Acquisition:
                     address,
                     eda_enable=self.user_parameters["EDA_enable"],
                 )
-
 
             self.scientisst.start(self.user_parameters["fs"], channels)
 
@@ -206,6 +204,7 @@ class Acquisition:
             self.scientisst.disconnect()
             self.connection_status = ConnectionStatus.DISCONNECTED
             pass
+
 
         sys.exit(0)
 

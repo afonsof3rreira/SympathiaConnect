@@ -1,13 +1,11 @@
 import sys
-
 from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton
 from PyQt5.QtCore import QTimer
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from LSL_workers import EDAWorker, ACCWorker, DACWorker
+from LSL_workers_MacOS import EDAWorker, ACCWorker, DACWorker
 from utilities import closest_division, colors
-
 
 class LSLPlotWindow(QMainWindow):
     def __init__(self, sample_rate, acc_enable, eda_enable, ld_mode):
