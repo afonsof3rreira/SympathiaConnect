@@ -32,7 +32,9 @@ colors = {'Light':
           'status': {ConnectionStatus.DISCONNECTED: '#f3724f',
                      ConnectionStatus.CONNECTING: '#f8d877',
                      ConnectionStatus.CONNECTED: '#8df877',
-                     ConnectionStatus.ACQUIRING: '#77aaf8'
+                     ConnectionStatus.ACQUIRING: '#77aaf8',
+                     ConnectionStatus.CONNECTION_FAILED: '#f3724f',
+                     ConnectionStatus.ACQUISITION_FINISHED: '#77aaf8',
                      },
                'Windows_fg': "white",
                'Windows_bg': "#202020"
@@ -65,6 +67,14 @@ def compute_time_seconds(u_params):
         time_val += u_params["duration_s"]
 
     return time_val
+
+def check_time_is_notNull(u_params):
+    k_list = ["duration_h", "duration_m", "duration_s"]
+
+    for k_ in k_list:
+        if u_params[k_] > 0:
+            return True
+    return False
 
 def write_params(file_path, params):
     """
@@ -191,12 +201,17 @@ def load_icon(rsc_path: str, os_type: str, ld_theme):
 
     icon_path = os.path.join(rsc_path, icon_fname + ext_name)
 
-    print(icon_path)
-
     img = Image.open(icon_path)
 
     return img
 
+def load_icon_path(rsc_path: str, os_type: str, ld_theme):
+    icon_fname = 'icon_dark' if ld_theme == 'Dark' else 'icon_light'
+    ext_name = '.icns' if os_type == 'MacOS' else '.ico'
+
+    icon_path = os.path.join(rsc_path, icon_fname + ext_name)
+
+    return icon_path
 
 def closest_division(sample_rate, desired_vieweing_rate):
     decimation_factor = 2  # Start with the smallest integer greater than 1

@@ -19,6 +19,8 @@ class ConnectionStatus(Enum):
     CONNECTING = 1
     CONNECTED = 2
     ACQUIRING = 3
+    CONNECTION_FAILED = 4
+    ACQUISITION_FINISHED = 5
 
 def hard_bt_reconnect(user_parameters):
     # step one, get the MAC address of the device

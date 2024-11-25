@@ -6,7 +6,7 @@ from threading import Event, Timer
 from scientisst import ScientISST, __version__
 from sense_src.device_picker import DevicePicker
 from sense_src.file_writer import FileWriter, get_header
-from utilities import compute_time_seconds
+from utilities import compute_time_seconds, check_time_is_notNull
 from utils.bluetooth_MacOS import ConnectionStatus, _reset_BT, hard_bt_reconnect
 import os
 from utils.data import create_exp_folder, clean_up_folder
@@ -23,24 +23,24 @@ def run_scheduled_task(duration, stop_event):
 class Acquisition:
     """Class for the acquisition cycle and process."""
 
-    def __init__(self, user_parameters: dict, plot_thread_callback):
+    def __init__(self, user_parameters: dict, plot_thread_callback, close_plot):
+        self.connection_status = None
         self.user_parameters = user_parameters
         self.plot_thread_callback = plot_thread_callback
+        self.close_plot = close_plot
 
     def get_connection_status(self):
         return self.connection_status
 
-    def acquisition_cycle(self, start_exp_btn):
+    def acquisition_cycle(self):
 
         self.connection_error = True
-        self.start_exp_btn = start_exp_btn
-
-        self.start_exp_btn.config(state=tk.DISABLED)
 
         first_acquisition = True
         ac_index = 0
+        limit_index = 1
 
-        while ac_index < 2:
+        while ac_index <= limit_index:
 
             try:
                 # time stamp for experiment folder and file path
@@ -51,7 +51,8 @@ class Acquisition:
                 file_path = os.path.join(folder_path, time_str + '.csv')
 
                 self.start_acquisition(first_acquisition, folder_path, file_path)
-                ac_index = 2
+                ac_index = limit_index + 1
+                self.connection_error = False
 
             except Exception as e:
                 traceback.print_exc()
@@ -64,12 +65,17 @@ class Acquisition:
             else:
                 first_acquisition = False
 
-        self.connection_status = ConnectionStatus.DISCONNECTED
-        self.start_exp_btn.config(state=tk.NORMAL)
+        if self.connection_error:
+            self.emit_brief_status(ConnectionStatus.CONNECTION_FAILED, 1000)
 
+    def emit_brief_status(self, status, duration_ms):
+        self.connection_status = status
+        time.sleep(duration_ms / 1000)
+        self.connection_status = ConnectionStatus.DISCONNECTED
 
     def start_acquisition(self, first_acquisition, folder_path, file_path):
 
+        global rt_plot
         print(self.user_parameters)
 
         if self.user_parameters["address"]:
@@ -88,8 +94,6 @@ class Acquisition:
 
         print("Channels are: ")
         print(channels)
-
-        # TODO: Re-update all fields
 
         # address, fs, duration OK
         self.connection_status = ConnectionStatus.CONNECTING
@@ -117,7 +121,6 @@ class Acquisition:
             if self.user_parameters["lsl"]:
                 from sense_src.stream_lsl import StreamLSL
 
-
                 lsl = StreamLSL(
                     channels,
                     self.user_parameters["fs"],
@@ -132,8 +135,7 @@ class Acquisition:
 
             # Launch plot
             if first_acquisition and self.plot_thread_callback:
-                rt_plot = threading.Thread(target=self.plot_thread_callback)
-                rt_plot.start()
+                self.plot_thread_callback()
 
             if file_path:
                 file_writer.start()
@@ -150,7 +152,7 @@ class Acquisition:
             timer = None
             acquisition_time = compute_time_seconds(self.user_parameters)
 
-            if timer is not None:
+            if check_time_is_notNull(self.user_parameters):
                 timer = run_scheduled_task(acquisition_time, stop_event)
 
             try:
@@ -184,12 +186,10 @@ class Acquisition:
             except KeyboardInterrupt:
                 if acquisition_time and timer:
                     timer.cancel()
-
+            self.close_plot()
             self.scientisst.stop()
-            # let the acquisition stop before stoping other threads
+            # let the acquisition stop before stopping other threads
             time.sleep(0.25)
-
-            self.connection_status = ConnectionStatus.CONNECTED
             sys.stdout.write("Stop acquisition\n")
 
             if file_path:
@@ -197,12 +197,11 @@ class Acquisition:
             if self.user_parameters["lsl"]:
                 lsl.stop()
 
+            self.emit_brief_status(ConnectionStatus.ACQUISITION_FINISHED, 1000)
+
         finally:
             clean_up_folder(folder_path, file_path)
-
-            # # TODO: Let's not disconnect
             self.scientisst.disconnect()
-            self.connection_status = ConnectionStatus.DISCONNECTED
             pass
 
         sys.exit(0)

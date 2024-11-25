@@ -1,12 +1,13 @@
 import inspect
 import multiprocessing
 import os
-import time
 import tkinter as tk
 import threading
 from tkinter import messagebox
 import darkdetect
-from LSL_plotting_Windows import open_lsl_plot
+from PyQt5.QtCore import QObject
+from PyQt5.QtWidgets import QApplication
+from LSL_plotting_Windows import LSLPlotWindow, open_lsl_plot
 from acquisition_Windows import Acquisition
 from scientisst import *
 from utilities import load_icon, get_root_project_path, colors, read_params, write_params, open_user_guide
@@ -14,6 +15,7 @@ from utils.input_validation import validate_time_in, validate_fs_in, validate_da
 from utils.scientisst_actions import led_pulse
 from utils.bluetooth_MacOS import ConnectionStatus, get_available_ports
 from PIL import ImageTk  # For working with images (e.g., PNG)
+
 
 class App(tk.Frame):
     """
@@ -70,6 +72,9 @@ class App(tk.Frame):
                 "verbose": None,
                 "dac": 165,
             }
+
+        # Track the state of the checkbox
+        self.view_plot_var = tk.BooleanVar(value=False)  # Initially off
 
         self.master.protocol("WM_DELETE_WINDOW", lambda: self.on_closing())
 
@@ -159,7 +164,15 @@ class App(tk.Frame):
         """ Creates the menu bar for the application """
         menubar = tk.Menu(self.master)
 
-        # Adding Help Menu
+        # Adding View Menu
+        self.view_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label='View', menu=self.view_menu)
+        self.view_menu.add_checkbutton(
+            label='View plot',
+            variable=self.view_plot_var,
+            command=self.toggle_view_plot
+        )
+
         self.help_ = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label='Help', menu=self.help_)
         self.help_.add_command(label='Open User Guide', command=self.open_user_guide)
@@ -167,6 +180,26 @@ class App(tk.Frame):
         self.help_.add_separator()
 
         self.master["menu"] = menubar
+
+
+    def toggle_view_plot(self):
+        """ Function called when the View plot checkbox is toggled """
+        if self.view_plot_var.get():
+            print("View plot toggled ON")
+            # Call the function to enable the plot
+            self.enable_plot()
+        else:
+            print("View plot toggled OFF")
+            # Call the function to disable the plot
+            self.disable_plot()
+
+    def enable_plot(self):
+        print("Enabling plot...")  # Replace with your actual implementation
+        self.launch_receive_and_plot()
+
+    def disable_plot(self):
+        print("Disabling plot...")  # Replace with your actual implementation
+        self.close_plot()
 
     def open_user_guide(self):
         pdf_path = os.path.join(self.root_path, "rsc", "user_guide.pdf")
@@ -345,39 +378,6 @@ class App(tk.Frame):
         self.pulse_button.grid(row=6 + self.row_offset, column=1, pady=10)
         self.pulse_button.config(state=tk.DISABLED)
 
-    def on_enter_pressed(self, event):
-
-        if not self.enter_pressed_once:
-            # First Enter press: save timestamp
-            self.tmp_time = time.time()
-            self.enter_pressed_once = True
-            print(f"Timestamp saved: {self.tmp_time}")
-            self.msg_display.config(state='normal')
-
-            # Clear the Text widget and prevent the default behavior of the Enter key
-            return 'break'
-
-        else:
-            # Second Enter press: get the text and process it
-            text = self.msg_display.get("1.0", tk.END).strip()
-
-            if text:
-                # Send the timestamp and text to another function
-                self.process_entry(self.tmp_time, text)
-
-                # Reset the flag and clear the Text widget
-                self.enter_pressed_once = False
-                self.msg_display.delete("1.0", tk.END)
-                self.msg_display.config(state='disabled')
-
-                # Prevent the default behavior of the Enter key
-                return 'break'
-
-    def process_entry(self, timestamp, text):
-        # Implement your logic here
-        print(f"Timestamp: {timestamp}, Text: {text}")
-        self.log_file.add_timestamps(text, timestamp)
-
     def update_connection_status(self):
         # state definitions
         # get status from the scientisst class
@@ -404,12 +404,36 @@ class App(tk.Frame):
                 self.sci_status_label.config(text="Acquiring",
                                              fg=colors[self.ld_theme]['status'][self.connection_status])
 
+            elif self.connection_status == ConnectionStatus.CONNECTION_FAILED:
+                self.sci_status_label.config(text="Connection Failed",
+                                             fg=colors[self.ld_theme]['status'][self.connection_status])
+
+            elif self.connection_status == ConnectionStatus.ACQUISITION_FINISHED:
+                self.sci_status_label.config(text="Acquisition Finished",
+                                             fg=colors[self.ld_theme]['status'][self.connection_status])
+
         if self.connection_status == ConnectionStatus.ACQUIRING:
+
             self.pulse_button.config(state=tk.NORMAL)
+
+            if self.view_menu.entrycget("View plot", "state") != tk.NORMAL:
+                self.view_menu.entryconfig(0, state=tk.NORMAL)
 
         else:
             if self.pulse_button.cget("state") != tk.DISABLED:
                 self.pulse_button.config(state=tk.DISABLED)
+
+            if self.view_menu.entrycget("View plot", "state") != tk.DISABLED:
+                self.view_menu.entryconfig("View plot", state=tk.DISABLED)
+                if self.view_plot_var.get() == 1:
+                    self.view_plot_var.set(0)  # Uncheck the box if disabled
+
+        if self.connection_status != ConnectionStatus.DISCONNECTED:
+            self.start_button.config(state=tk.DISABLED)
+        else:
+            if self.start_button.cget("state") != tk.NORMAL:
+                self.start_button.config(state=tk.NORMAL)
+
 
         self.after(200, self.update_connection_status)
 
@@ -424,11 +448,12 @@ class App(tk.Frame):
             except:
                 print("Could not overwrite User Params. Check if file exists")
 
-            self.ac_process = Acquisition(self.user_parameters, self.launch_receive_and_plot)
+            # rt_plotter = RT_plotter(self.user_parameters['fs'], self.user_parameters['EDA_enable'], self.user_parameters['ACC_enable'], self.ld_theme)
 
-            acquisition_cycle_thread = threading.Thread(target=self.ac_process.acquisition_cycle, args=(self.start_button,))
+            self.ac_process = Acquisition(self.user_parameters, self.launch_receive_and_plot, self.close_plot)
+
+            acquisition_cycle_thread = threading.Thread(target=self.ac_process.acquisition_cycle)
             acquisition_cycle_thread.start()
-
 
     def update_fields(self):
 
@@ -465,10 +490,7 @@ class App(tk.Frame):
         except:
             print("Error: could not save user parameters")
 
-        # results_path = os.path.join(get_root_project_path(), 'results')
-        # clean_up_folders_in_root(results_path)
-
-        # self.plot_cleanup()
+        print("closing event")
         self.master.destroy()
 
     def overwrite_user_params(self):
@@ -478,15 +500,39 @@ class App(tk.Frame):
         # self.
         write_params(self.uparams_path, self.user_parameters)
 
-    def launch_receive_and_plot(self):
-        # Using threading to avoid multiprocessing issues with Tkinter
-        def plot_task():
-            open_lsl_plot(self.user_parameters['fs'], self.user_parameters['EDA_enable'],
-                          self.user_parameters['ACC_enable'], self.ld_theme)
+    def check_plot_process(self):
+        """Periodically check if the plotting process is alive."""
+        if self.plot_process is None or not self.plot_process.is_alive():
+            # Plot process is not running; uncheck the "View Plot" checkbox
+            self.view_plot_var.set(0)  # Uncheck the box
+        else:
+            self.view_plot_var.set(1)  # Check the box
 
-        # Start a new thread for the plotting function
-        thread = threading.Thread(target=plot_task)
-        thread.start()
+            # Schedule the next check
+            self.master.after(1000, self.check_plot_process)  # Check every 1 second
+
+    def launch_receive_and_plot(self):
+
+        self.plot_process = multiprocessing.Process(target=open_lsl_plot,
+                                                    args=(self.user_parameters['fs'],
+                                                          self.user_parameters['EDA_enable'],
+                                                          self.user_parameters['ACC_enable'],
+                                                          self.ld_theme))
+        self.plot_process.start()
+        self.check_plot_process()  # Start checking the process state
+
+    def close_plot(self):
+        """Close the plotting subprocess."""
+        if self.plot_process is None or not self.plot_process.is_alive():
+            print("No active plotting process to terminate.")
+            return
+
+        self.plot_process.terminate()
+        self.plot_process.join()  # Clean up resources
+        print("Plotting process terminated.")
+        self.plot_process = None
+        self.view_plot_var.set(0)  # Uncheck the box
+
 
 def App_UI_Windows(debug=False):
     root_path = get_root_project_path(debug=debug)
@@ -506,7 +552,7 @@ def App_UI_Windows(debug=False):
     app = App(master=root, root_path=root_path, os_type='Windows', icon_file=icon_img, ld_theme=ld_theme)
     app.update_connection_status()
 
-    root.geometry("500x450")  # Set the fixed size of the window (width x height)
+    root.geometry("500x475")  # Set the fixed size of the window (width x height)
     # root.minsize(width=415, height=325)
 
     app.mainloop()

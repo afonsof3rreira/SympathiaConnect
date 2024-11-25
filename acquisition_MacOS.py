@@ -188,8 +188,6 @@ class Acquisition:
             self.scientisst.stop()
             # let the acquisition stop before stoping other threads
             time.sleep(0.25)
-
-            self.connection_status = ConnectionStatus.CONNECTED
             sys.stdout.write("Stop acquisition\n")
 
             if file_path:
