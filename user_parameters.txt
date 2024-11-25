@@ -1,0 +1,42 @@
+# ========================================== User Parameters file ==========================================
+# User parameters. This file contains a list of acquisition parameters which are stored and used before opening.
+# The structure of this file is: <parameter name>=<parameter value>. Please, do not change this structure.
+# If this structure is unreadable, the App will ignore it and use default parameters.
+# Comments under each variable explain their usage.
+# ========================================== Sympathia Connect =============================================
+# © 2024 Sympathia Sense. All rights reserved.
+# This software is protected by copyright laws and international treaties.
+# Unauthorized reproduction, distribution, or use of this software, in whole or in part, is strictly prohibited.
+# All trademarks and registered trademarks are the property of their respective owners.
+# ==========================================================================================================
+
+address=No Dev. Found
+# address: The communication address for connecting to the ScientISST Sense device.
+# For BTH communication, the address is the BTH MAC address for Linux, serial port address for Mac, or COM port for Windows.
+
+fs=20
+# fs: The sampling frequency in Hz. Defines how often the data is sampled from the device. Default is 1000 Hz.
+
+ACC_enable=false
+# ACC_enable: Enables the 1-axial Accelerometer when set to true, and disables it when set to false. Default is false.
+
+EDA_enable=false
+# EDA_enable: Enables the Electrodermal activity (EDA) Sensor when set to true, and disables it when set to false. Default is false.
+
+duration_h=999
+# duration_h: The duration hours for data acquisition. The default is 0 hours.
+
+duration_m=999
+# duration_m: The duration minutes for data acquisition. The default is 1 minute.
+
+duration_s=999
+# duration_s: The duration seconds for data acquisition. The default is 0 seconds.
+
+rt_viewer=true
+# rt_viewer: A boolean flag indicating whether to open the Real-time Viewer when the acquisition is started. Default is true.
+
+verbose=false
+# verbose: A flag to log sent and received bytes. When set to true, detailed logging of the communication is enabled; otherwise, it is disabled. Default is false.
+
+dac=165
+# dac: Possibly a specific parameter related to a Digital-to-Analog Converter (DAC) setting. The value 165 could be an identifier or configuration setting for the DAC used in the acquisition system.
