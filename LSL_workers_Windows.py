@@ -2,16 +2,15 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from pylsl import StreamInlet, resolve_stream
 import time
 
+
 class ACCWorker(QThread):
     signal = pyqtSignal(list)  # Signal to pass new data to the main GUI thread
 
-    def __init__(self, sample_rate, acc_enable, eda_enable, window_size=None, parent=None):
+    def __init__(self, sample_rate, mode=None, window_size=None, parent=None):
         super().__init__(parent)
         self.sample_rate = sample_rate
         self.running = True
 
-        self.acc_enable = acc_enable
-        self.eda_enable = eda_enable
         self.window_size = window_size  # Number of samples for the moving average
 
         self.ma_buffer = []  # Unified buffer name for moving average
@@ -49,17 +48,23 @@ class ACCWorker(QThread):
         self.quit()
         self.wait()  # Wait for the thread to finish
 
-
 class EDAWorker(QThread):
     signal = pyqtSignal(list)  # Signal to pass new data to the main GUI thread
 
-    def __init__(self, sample_rate, acc_enable, eda_enable, window_size=None, parent=None):
+    def __init__(self, sample_rate, mode, window_size=None, parent=None):
         super().__init__(parent)
         self.sample_rate = sample_rate
         self.running = True
 
-        self.acc_enable = acc_enable
-        self.eda_enable = eda_enable
+        # mode == 0 > ACC only
+        # mode == 1 > EDA and DAC only
+        # mode == 2 > ALL
+
+        if mode == 1:
+            self.index = 0
+        if mode == 2:
+            self.index = 1
+
         self.window_size = window_size  # Number of samples for the moving average
 
         self.ma_buffer = []  # Unified buffer name for moving average
@@ -77,8 +82,10 @@ class EDAWorker(QThread):
             if sample:
 
                 if self.window_size is not None:
+
                     # Append the current sample to the buffer
-                    self.ma_buffer.append(sample[1])
+
+                    self.ma_buffer.append(sample[self.index])
 
                     # If the buffer exceeds the window size, remove the oldest sample
                     if len(self.ma_buffer) > self.window_size:
@@ -88,7 +95,7 @@ class EDAWorker(QThread):
                     avg_sample = sum(self.ma_buffer) / len(self.ma_buffer)
                     self.signal.emit([avg_sample])
                 else:
-                    self.signal.emit([sample[1]])
+                    self.signal.emit([sample[self.index]])
 
             time.sleep(0.5 / (self.sample_rate))  # Adjust to the desired sample rate
 
@@ -101,13 +108,20 @@ class EDAWorker(QThread):
 class DACWorker(QThread):
     signal = pyqtSignal(list)  # Signal to pass new data to the main GUI thread
 
-    def __init__(self, sample_rate, acc_enable, eda_enable, window_size, parent=None):
+    def __init__(self, sample_rate, mode, window_size, parent=None):
         super().__init__(parent)
         self.sample_rate = sample_rate
         self.running = True
 
-        self.acc_enable = acc_enable
-        self.eda_enable = eda_enable
+        # mode == 0 > ACC only
+        # mode == 1 > EDA and DAC only
+        # mode == 2 > ALL
+
+        if mode == 1:
+            self.index = 1
+        if mode == 2:
+            self.index = 2
+
         self.window_size = window_size  # Number of samples for the moving average
 
         self.ma_buffer = []  # Unified buffer name for moving average
@@ -126,7 +140,7 @@ class DACWorker(QThread):
 
                 if self.window_size is not None:
                     # Append the current sample to the buffer
-                    self.ma_buffer.append(sample[2])
+                    self.ma_buffer.append(sample[self.index])
 
                     # If the buffer exceeds the window size, remove the oldest sample
                     if len(self.ma_buffer) > self.window_size:
@@ -136,7 +150,7 @@ class DACWorker(QThread):
                     avg_sample = sum(self.ma_buffer) / len(self.ma_buffer)
                     self.signal.emit([avg_sample])
                 else:
-                    self.signal.emit([sample[2]])
+                    self.signal.emit([sample[self.index]])
 
             time.sleep(0.5 / (self.sample_rate))  # Adjust to the desired sample rate
 

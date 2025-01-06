@@ -70,7 +70,7 @@ class App(tk.Frame):
 
     def create_widgets(self):
         # Create the COM port selection drop-down
-        self.com_label = tk.Label(self, text="Select COM Port:")
+        self.com_label = tk.Label(self, text="Select Device:")
         self.com_label.grid(row=0, column=0)
         self.com_var = tk.StringVar(self)
         self.com_var.set("")  # default value

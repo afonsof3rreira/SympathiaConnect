@@ -2,6 +2,18 @@ import sys
 import time
 import os
 
+
+def create_folder(root_path, folder_name):
+
+    folder_path = os.path.join(root_path, folder_name)
+
+    # Check if the folder does not exist already
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+        return True
+    else:
+        return False
+
 def create_exp_folder(time_stamp):
 
     current_script_path = os.path.abspath(sys.argv[0])
@@ -68,23 +80,15 @@ def clean_up_folder(folder_path: str, file_path):
 
     # Check if the folder exists
     if os.path.exists(folder_path):
+        # Check if the csv file has less than 3 lines
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
 
-        # Check if the folder is empty
-        if not os.listdir(folder_path):  # If the folder is empty
-            os.rmdir(folder_path)  # Remove the empty folder
-            print(f"Folder {folder_path} was empty and has been deleted.")
-
-        else:
-
-            # Check if the csv file has less than 3 lines
-            with open(file_path, 'r') as file:
-                lines = file.readlines()
-
-                if len(lines) < 3:
-                    # Delete the folder and the file if the csv has less than 3 lines
-                    os.remove(file_path)  # Remove the csv file
-                    os.rmdir(folder_path)  # Remove the folder
-                    print(
-                        f"Folder {folder_path} and its contents have been deleted (csv file had less than 3 lines).")
+            if len(lines) < 3:
+                # Delete the folder and the file if the csv has less than 3 lines
+                os.remove(file_path)  # Remove the csv file
+                os.rmdir(folder_path)  # Remove the folder
+                print(
+                    f"Folder {folder_path} and its contents have been deleted (csv file had less than 3 lines).")
     else:
         print(f"Folder {folder_path} does not exist.")

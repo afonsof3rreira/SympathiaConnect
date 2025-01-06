@@ -515,7 +515,7 @@ class ScientISST:
 
     def disconnect(self):
         """
-        Disconnects from a ScientISST device. If an aquisition is running, it is stopped
+        Disconnects from a ScientISST device. If an aquisition is running - 9kph, it is stopped
         """
         if self.__num_chs != 0:
             self.stop()

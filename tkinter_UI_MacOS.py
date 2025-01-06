@@ -64,10 +64,10 @@ class App(tk.Frame):
                 "duration_h": 0,
                 "duration_m": 1,
                 "duration_s": 0,
-                "lsl": None,
                 "version": None,
                 "verbose": None,
                 "dac": 165,
+                "pre_open_plot": True
             }
 
         self.master.protocol("WM_DELETE_WINDOW", lambda: self.on_closing())
@@ -160,7 +160,7 @@ class App(tk.Frame):
         self.master["menu"] = menubar
 
     def open_user_guide(self):
-        pdf_path = os.path.join(self.root_path, "rsc", "user_guide.pdf")
+        pdf_path = os.path.join(self.root_path, "rsc", "Sympathia_Connect_User_Guide.pdf")
         open_user_guide(pdf_path)
 
     def toggle_mode(self):

@@ -39,7 +39,7 @@ class StreamLSL(ThreadBuilder):
         chunk = []
 
         for frame in frames:
-            analog_section = frame.a
+            analog_section = frame.a[:] # [:] is needed so that the list is being copied without wrongfully modifying the reference (leads to duplicate dac entry in stored data)
 
             if self.eda_enable:  # add DAC if EDA is enabled
                 dac_value = frame.dac

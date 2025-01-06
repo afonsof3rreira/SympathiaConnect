@@ -3,6 +3,10 @@ import threading
 import time
 import traceback
 from threading import Event, Timer
+
+import winsound
+
+from saving_preferences import generate_file_path
 from scientisst import ScientISST, __version__
 from sense_src.device_picker import DevicePicker
 from sense_src.file_writer import FileWriter, get_header
@@ -23,7 +27,7 @@ def run_scheduled_task(duration, stop_event):
 class Acquisition:
     """Class for the acquisition cycle and process."""
 
-    def __init__(self, user_parameters: dict, plot_thread_callback, close_plot):
+    def __init__(self, user_parameters: dict, plot_thread_callback=None, close_plot=None):
         self.connection_status = None
         self.user_parameters = user_parameters
         self.plot_thread_callback = plot_thread_callback
@@ -43,12 +47,13 @@ class Acquisition:
         while ac_index <= limit_index:
 
             try:
+
                 # time stamp for experiment folder and file path
                 exp_time_stamp = time.localtime(time.time())
 
                 # create experiment folder and file path
-                folder_path, time_str = create_exp_folder(exp_time_stamp)
-                file_path = os.path.join(folder_path, time_str + '.csv')
+                folder_path = self.user_parameters["directory"]
+                file_path = generate_file_path(self.user_parameters)
 
                 self.start_acquisition(first_acquisition, folder_path, file_path)
                 ac_index = limit_index + 1
@@ -56,7 +61,10 @@ class Acquisition:
 
             except Exception as e:
                 traceback.print_exc()
-                clean_up_folder(folder_path, file_path)
+                try:
+                    clean_up_folder(folder_path, file_path)
+                except:
+                    pass
                 ac_index += 1
 
             if self.connection_error:
@@ -68,10 +76,13 @@ class Acquisition:
         if self.connection_error:
             self.emit_brief_status(ConnectionStatus.CONNECTION_FAILED, 1000)
 
-    def emit_brief_status(self, status, duration_ms):
+    def emit_brief_status(self, status, duration_ms, sound=True):
         self.connection_status = status
         time.sleep(duration_ms / 1000)
         self.connection_status = ConnectionStatus.DISCONNECTED
+
+        if sound:
+            winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
 
     def start_acquisition(self, first_acquisition, folder_path, file_path):
 
@@ -87,7 +98,9 @@ class Acquisition:
 
         channels = []
         if self.user_parameters['ACC_enable']:
-            channels.append(5)
+            channels.append(1)
+            channels.append(2)
+            channels.append(3)
 
         if self.user_parameters['EDA_enable']:
             channels.append(7)
@@ -118,15 +131,14 @@ class Acquisition:
                     firmware_version=firmware_version,
                 )
 
-            if self.user_parameters["lsl"]:
-                from sense_src.stream_lsl import StreamLSL
+            from sense_src.stream_lsl import StreamLSL
 
-                lsl = StreamLSL(
-                    channels,
-                    self.user_parameters["fs"],
-                    address,
-                    eda_enable=self.user_parameters["EDA_enable"],
-                )
+            lsl = StreamLSL(
+                channels,
+                self.user_parameters["fs"],
+                address,
+                eda_enable=self.user_parameters["EDA_enable"],
+            )
 
             self.scientisst.start(self.user_parameters["fs"], channels)
 
@@ -140,8 +152,7 @@ class Acquisition:
             if file_path:
                 file_writer.start()
 
-            if self.user_parameters["lsl"]:
-                lsl.start()
+            lsl.start()
 
             tick = 0
 
@@ -175,8 +186,7 @@ class Acquisition:
                     if file_path:
                         file_writer.put(frames)
 
-                    if self.user_parameters["lsl"]:
-                        lsl.put(frames)
+                    lsl.put(frames)
 
                     if self.user_parameters["verbose"]:
                         sys.stdout.write("{}\n".format(frames[0]))
@@ -186,7 +196,9 @@ class Acquisition:
             except KeyboardInterrupt:
                 if acquisition_time and timer:
                     timer.cancel()
-            self.close_plot()
+
+            if self.close_plot is not None:
+                self.close_plot()
             self.scientisst.stop()
             # let the acquisition stop before stopping other threads
             time.sleep(0.25)
@@ -194,8 +206,7 @@ class Acquisition:
 
             if file_path:
                 file_writer.stop()
-            if self.user_parameters["lsl"]:
-                lsl.stop()
+            lsl.stop()
 
             self.emit_brief_status(ConnectionStatus.ACQUISITION_FINISHED, 1000)
 

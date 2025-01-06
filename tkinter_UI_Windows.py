@@ -9,7 +9,9 @@ from PyQt5.QtCore import QObject
 from PyQt5.QtWidgets import QApplication
 from LSL_plotting_Windows import LSLPlotWindow, open_lsl_plot
 from acquisition_Windows import Acquisition
+from saving_preferences import saving_preferences, update_fields
 from scientisst import *
+from updates import UpdateSection
 from utilities import load_icon, get_root_project_path, colors, read_params, write_params, open_user_guide
 from utils.input_validation import validate_time_in, validate_fs_in, validate_dac_in
 from utils.scientisst_actions import led_pulse
@@ -28,7 +30,7 @@ class App(tk.Frame):
         AI6: testing
     """
 
-    def __init__(self, master=None, root_path=None, os_type='Windows', icon_file=None, ld_theme=None):
+    def __init__(self, master=None, version=None, root_path=None, os_type='Windows', icon_file=None, ld_theme=None):
 
         # TODO: Next steps: make the scientISST acquisition through the API be run in "parallel" (threading) with respect to the tkinter App so that its buttons don't freeze
         #  TODO: Integrate and test the button to generate the pulse signal
@@ -38,6 +40,7 @@ class App(tk.Frame):
         self.os_type = os_type
         self.scientisst = None
         self.root_path = root_path
+        self.version = version
 
         if ld_theme is None:
             self.ld_theme = "Light"
@@ -54,6 +57,7 @@ class App(tk.Frame):
 
         parent_folder_path, _ = os.path.split(current_script)
         self.uparams_path = os.path.join(parent_folder_path, "user_parameters.txt")
+        self.plot_process = None  # Initialize plot_process to None
 
         try:
             self.user_parameters = read_params(self.uparams_path)
@@ -71,10 +75,16 @@ class App(tk.Frame):
                 "version": None,
                 "verbose": None,
                 "dac": 165,
+                "auto_load_plot": True,
+                "directory": ".",
+                "naming": "Timestamp",
+                "prefix": "",
+                "suffix": ""
             }
 
         # Track the state of the checkbox
         self.view_plot_var = tk.BooleanVar(value=False)  # Initially off
+        self.auto_load_plot_var = tk.BooleanVar(value=self.user_parameters['auto_load_plot'])
 
         self.master.protocol("WM_DELETE_WINDOW", lambda: self.on_closing())
 
@@ -83,8 +93,8 @@ class App(tk.Frame):
         self.master = master
         self.master.grid_rowconfigure(0, weight=1)  # This row expands.
         self.master.grid_columnconfigure(0, weight=1)  # This column expands.
-        self.master.configure(bg='#202020')
-        self.configure(bg='#202020')
+        self.master.configure(bg=colors[self.ld_theme]['Windows_bg'])
+        self.configure(bg=colors[self.ld_theme]['Windows_bg'])
 
         self.create_menu()
 
@@ -93,7 +103,7 @@ class App(tk.Frame):
         self.grid_columnconfigure(0, weight=1)  # Make column 0 resizable
 
         # Create a frame to hold the image and title
-        header_frame = tk.Frame(self, bg='#202020')
+        header_frame = tk.Frame(self, bg=colors[self.ld_theme]['Windows_bg'])
         header_frame.grid(row=1, column=0, columnspan=2, padx=10, sticky='nsew')
 
         header_frame.grid_rowconfigure(0, weight=1)
@@ -108,7 +118,7 @@ class App(tk.Frame):
             self.img_tk = ImageTk.PhotoImage(img)  # Convert to Tkinter-compatible format
 
         # Create a label with the image
-        self.img_label = tk.Label(header_frame, image=self.img_tk, bg='#202020')
+        self.img_label = tk.Label(header_frame, image=self.img_tk, bg=colors[self.ld_theme]['Windows_bg'])
         self.img_label.grid(row=0, column=0)  # Add padding between image and text
 
         # Create a label with the title of the app
@@ -166,43 +176,30 @@ class App(tk.Frame):
 
         # Adding View Menu
         self.view_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label='View', menu=self.view_menu)
+        menubar.add_cascade(label='Plotting', menu=self.view_menu)
+
         self.view_menu.add_checkbutton(
-            label='View plot',
-            variable=self.view_plot_var,
-            command=self.toggle_view_plot
+            label='Auto-load',
+            variable=self.auto_load_plot_var,
         )
 
-        self.help_ = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label='Help', menu=self.help_)
-        self.help_.add_command(label='Open User Guide', command=self.open_user_guide)
-        self.help_.add_command(label='About', command=self.show_about)
-        self.help_.add_separator()
+        self.view_menu.add_command(
+            label='Start window',
+            command=self.launch_receive_and_plot  # Directly call the function you want
+        )
 
+        self.update_checker = UpdateSection(self, self.ld_theme)
+
+        self.help_ = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label='Settings', menu=self.help_)
+        self.help_.add_command(label='Saving preferences', command=lambda: saving_preferences(self, self.ld_theme))
+        self.help_.add_command(label='User Guide', command=self.open_user_guide)
+        #self.help_.add_command(label='Check for Updates', command=self.update_checker.set_window)
+        self.help_.add_command(label='About', command=self.show_about)
         self.master["menu"] = menubar
 
-
-    def toggle_view_plot(self):
-        """ Function called when the View plot checkbox is toggled """
-        if self.view_plot_var.get():
-            print("View plot toggled ON")
-            # Call the function to enable the plot
-            self.enable_plot()
-        else:
-            print("View plot toggled OFF")
-            # Call the function to disable the plot
-            self.disable_plot()
-
-    def enable_plot(self):
-        print("Enabling plot...")  # Replace with your actual implementation
-        self.launch_receive_and_plot()
-
-    def disable_plot(self):
-        print("Disabling plot...")  # Replace with your actual implementation
-        self.close_plot()
-
     def open_user_guide(self):
-        pdf_path = os.path.join(self.root_path, "rsc", "user_guide.pdf")
+        pdf_path = os.path.join(self.root_path, "rsc", "Sympathia_Connect_User_Guide.pdf")
         open_user_guide(pdf_path)
 
     def toggle_mode(self):
@@ -218,7 +215,7 @@ class App(tk.Frame):
         messagebox.showinfo(
             "About",
             "Sympathia Connect\n"
-            "Version: 1.0.0\n\n"
+            "Version: " + self.version + "\n\n"
             "Developed by Sympathia Technologies\n"
             "© 2024 Sympathia Technologies. All rights reserved.\n\n"
             "Made by those that use their head to live with heart.\n\n"
@@ -290,7 +287,7 @@ class App(tk.Frame):
         self.sci_status_label.grid(row=0 + self.row_offset, column=1, columnspan=1)
 
         # Create the COM port selection drop-down
-        self.com_label = tk.Label(self, text="Select COM Port:", font=('Roboto', 14),
+        self.com_label = tk.Label(self, text="Select Device:", font=('Roboto', 14),
                                   bg=colors[self.ld_theme]['Windows_bg'], fg=colors[self.ld_theme]['Windows_fg'])
         self.com_label.grid(row=1 + self.row_offset, column=0, pady=10)
         self.com_var = tk.StringVar(self)
@@ -330,34 +327,42 @@ class App(tk.Frame):
         self.acc_var = tk.BooleanVar()  # This will hold the state of the ACC checkbox
         self.acc_checkbox = tk.Checkbutton(self.checkbox_frame, text="ACC", variable=self.acc_var,
                                            bg=colors[self.ld_theme]['Windows_bg'],
-                                           fg=colors[self.ld_theme]['Windows_fg'], selectcolor='black',
+                                           fg=colors[self.ld_theme]['Windows_fg'], selectcolor=colors[self.ld_theme]['Windows_bg'],
+                                           command=lambda: self.validate_checkboxes(self.acc_var, [self.eda_var]),
                                            activebackground=colors[self.ld_theme]['Windows_bg'],
                                            activeforeground=colors[self.ld_theme]['Windows_fg'],
                                            width=7,
                                            height=2,
                                            font=('Roboto', 12))
 
-        self.acc_checkbox.grid(row=1 + self.row_offset, column=0, padx=5)
+        self.acc_checkbox.grid(row=1 + self.row_offset, column=1, padx=5)
 
         # EDA checkbox
         self.eda_var = tk.BooleanVar()  # This will hold the state of the EDA checkbox
         self.eda_checkbox = tk.Checkbutton(self.checkbox_frame, text="EDA", variable=self.eda_var,
+                                           command=lambda: (
+                                               self.validate_checkboxes(self.eda_var, [self.acc_var]),
+                                               self.toggle_dac()),
                                            bg=colors[self.ld_theme]['Windows_bg'],
-                                           fg=colors[self.ld_theme]['Windows_fg'], selectcolor='black',
+                                           fg=colors[self.ld_theme]['Windows_fg'], selectcolor=colors[self.ld_theme]['Windows_bg'],
                                            activebackground=colors[self.ld_theme]['Windows_bg'],
                                            activeforeground=colors[self.ld_theme]['Windows_fg'],
                                            width=7,
                                            height=2,
                                            font=('Roboto', 12))
 
-        self.eda_checkbox.grid(row=1 + self.row_offset, column=1, padx=5)
+        self.eda_checkbox.grid(row=1 + self.row_offset, column=0, padx=5)
 
         # Set initial states based on user parameters
+        if not self.user_parameters['ACC_enable'] and not self.user_parameters['EDA_enable']:
+            self.user_parameters['EDA_enable'] = True
+
         self.acc_var.set(self.user_parameters['ACC_enable'])
         self.eda_var.set(self.user_parameters['EDA_enable'])
 
         self.dac_value_label = tk.Label(self, text="DAC Value", font=('Roboto', 14),
                                         bg=colors[self.ld_theme]['Windows_bg'], fg=colors[self.ld_theme]['Windows_fg'])
+
         self.dac_value_label.grid(row=4 + self.row_offset, column=1, pady=(10, 5))
 
         self.dac_value_entry = tk.Entry(self, width=5, validate="key",
@@ -377,6 +382,22 @@ class App(tk.Frame):
                                       font=('Roboto', 12))
         self.pulse_button.grid(row=6 + self.row_offset, column=1, pady=10)
         self.pulse_button.config(state=tk.DISABLED)
+
+    def toggle_dac(self):
+        if self.eda_var.get():
+            # Disable the entry
+            self.dac_value_entry.config(state=tk.NORMAL)
+        else:
+            # Enable the entry
+            self.dac_value_entry.config(state=tk.DISABLED)
+
+    def validate_checkboxes(self, var_to_check, var_others):
+        """Ensures at least one checkbox remains checked."""
+        # Check if all checkboxes are unchecked
+        if not var_to_check.get() and not any(var.get() for var in var_others):
+            # Reset the variable to keep at least one checkbox checked
+            var_to_check.set(True)
+            print("At least one checkbox must be checked.")
 
     def update_connection_status(self):
         # state definitions
@@ -416,17 +437,25 @@ class App(tk.Frame):
 
             self.pulse_button.config(state=tk.NORMAL)
 
-            if self.view_menu.entrycget("View plot", "state") != tk.NORMAL:
-                self.view_menu.entryconfig(0, state=tk.NORMAL)
+            if self.view_menu.entrycget("Auto-load", "state") != tk.DISABLED:
+                self.view_menu.entryconfig("Auto-load", state=tk.DISABLED)
+
+            if self.view_menu.entrycget("Start window", "state") != tk.DISABLED and self.auto_load_plot_var.get():
+                self.view_menu.entryconfig("Start window", state=tk.DISABLED)
+
+            elif self.view_menu.entrycget("Start window", "state") != tk.NORMAL and not self.auto_load_plot_var.get():
+                self.view_menu.entryconfig("Start window", state=tk.NORMAL)
+
 
         else:
             if self.pulse_button.cget("state") != tk.DISABLED:
                 self.pulse_button.config(state=tk.DISABLED)
 
-            if self.view_menu.entrycget("View plot", "state") != tk.DISABLED:
-                self.view_menu.entryconfig("View plot", state=tk.DISABLED)
-                if self.view_plot_var.get() == 1:
-                    self.view_plot_var.set(0)  # Uncheck the box if disabled
+            if self.view_menu.entrycget("Auto-load", "state") != tk.NORMAL:
+                self.view_menu.entryconfig("Auto-load", state=tk.NORMAL)
+
+            if self.view_menu.entrycget("Start window", "state") != tk.DISABLED:
+                self.view_menu.entryconfig("Start window", state=tk.DISABLED)
 
         if self.connection_status != ConnectionStatus.DISCONNECTED:
             self.start_button.config(state=tk.DISABLED)
@@ -439,8 +468,10 @@ class App(tk.Frame):
 
     def start_experiment(self):
 
+        print(self.user_parameters)
+
         if self.bt_var.get():
-            self.update_fields()
+            update_fields(self)
 
             # first thing before actually starting is to save the json file
             try:
@@ -448,42 +479,17 @@ class App(tk.Frame):
             except:
                 print("Could not overwrite User Params. Check if file exists")
 
-            # rt_plotter = RT_plotter(self.user_parameters['fs'], self.user_parameters['EDA_enable'], self.user_parameters['ACC_enable'], self.ld_theme)
+            if self.auto_load_plot_var.get():
+                self.ac_process = Acquisition(self.user_parameters, self.launch_receive_and_plot, self.close_plot)
 
-            self.ac_process = Acquisition(self.user_parameters, self.launch_receive_and_plot, self.close_plot)
+            else:
+                self.ac_process = Acquisition(self.user_parameters)
 
             acquisition_cycle_thread = threading.Thread(target=self.ac_process.acquisition_cycle)
             acquisition_cycle_thread.start()
 
-    def update_fields(self):
-
-        if self.acc_var.get() != self.user_parameters['ACC_enable']:
-            self.user_parameters['ACC_enable'] = self.acc_var.get()
-
-        if self.eda_var.get() != self.user_parameters['EDA_enable']:
-            self.user_parameters['EDA_enable'] = self.eda_var.get()
-
-        # First, check if any data in the text boxes is different from the ones in the input
-        if int(self.hour_entry.get()) != self.user_parameters['duration_h']:
-            self.user_parameters['duration_h'] = int(self.hour_entry.get())
-
-        if int(self.minute_entry.get()) != self.user_parameters['duration_m']:
-            self.user_parameters['duration_m'] = int(self.minute_entry.get())
-
-        if int(self.second_entry.get()) != self.user_parameters['duration_s']:
-            self.user_parameters['duration_s'] = int(self.second_entry.get())
-
-        if int(self.sr_entry.get()) != self.user_parameters['fs']:
-            self.user_parameters['fs'] = int(self.sr_entry.get())
-
-        if int(self.dac_value_entry.get()) != self.user_parameters['dac']:
-            self.user_parameters['dac'] = int(self.dac_value_entry.get())
-
-        if self.bt_devices_pair[self.bt_var.get()] != self.user_parameters['address']:
-            self.user_parameters['address'] = self.bt_devices_pair[self.bt_var.get()]
-
     def on_closing(self):
-        self.update_fields()
+        update_fields(self)
 
         try:
             self.overwrite_user_params()
@@ -500,18 +506,12 @@ class App(tk.Frame):
         # self.
         write_params(self.uparams_path, self.user_parameters)
 
-    def check_plot_process(self):
-        """Periodically check if the plotting process is alive."""
-        if self.plot_process is None or not self.plot_process.is_alive():
-            # Plot process is not running; uncheck the "View Plot" checkbox
-            self.view_plot_var.set(0)  # Uncheck the box
-        else:
-            self.view_plot_var.set(1)  # Check the box
-
-            # Schedule the next check
-            self.master.after(1000, self.check_plot_process)  # Check every 1 second
-
     def launch_receive_and_plot(self):
+
+        if self.plot_process is not None:
+            if self.plot_process.is_alive():
+                print("Plotting process is already running - 9kph.")
+                return
 
         self.plot_process = multiprocessing.Process(target=open_lsl_plot,
                                                     args=(self.user_parameters['fs'],
@@ -519,7 +519,7 @@ class App(tk.Frame):
                                                           self.user_parameters['ACC_enable'],
                                                           self.ld_theme))
         self.plot_process.start()
-        self.check_plot_process()  # Start checking the process state
+        print("Plotting process started.")
 
     def close_plot(self):
         """Close the plotting subprocess."""
@@ -534,7 +534,7 @@ class App(tk.Frame):
         self.view_plot_var.set(0)  # Uncheck the box
 
 
-def App_UI_Windows(debug=False):
+def App_UI_Windows(version, debug=False):
     root_path = get_root_project_path(debug=debug)
     rsc_path = os.path.join(root_path, 'rsc')
 
@@ -549,10 +549,10 @@ def App_UI_Windows(debug=False):
     root.rowconfigure(0, weight=1)
     root.title("Sympathia Connect")
 
-    app = App(master=root, root_path=root_path, os_type='Windows', icon_file=icon_img, ld_theme=ld_theme)
+    app = App(master=root, version=version, root_path=root_path, os_type='Windows', icon_file=icon_img, ld_theme=ld_theme)
     app.update_connection_status()
 
     root.geometry("500x475")  # Set the fixed size of the window (width x height)
-    # root.minsize(width=415, height=325)
+    root.minsize(width=415, height=375)
 
     app.mainloop()

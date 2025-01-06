@@ -114,16 +114,15 @@ class Acquisition:
                     firmware_version=firmware_version,
                 )
 
-            if self.user_parameters["lsl"]:
-                from sense_src.stream_lsl import StreamLSL
+            from sense_src.stream_lsl import StreamLSL
 
 
-                lsl = StreamLSL(
-                    channels,
-                    self.user_parameters["fs"],
-                    address,
-                    eda_enable=self.user_parameters["EDA_enable"],
-                )
+            lsl = StreamLSL(
+                channels,
+                self.user_parameters["fs"],
+                address,
+                eda_enable=self.user_parameters["EDA_enable"],
+            )
 
             self.scientisst.start(self.user_parameters["fs"], channels)
 
@@ -138,8 +137,7 @@ class Acquisition:
             if file_path:
                 file_writer.start()
 
-            if self.user_parameters["lsl"]:
-                lsl.start()
+            lsl.start()
 
             tick = 0
 
@@ -173,8 +171,7 @@ class Acquisition:
                     if file_path:
                         file_writer.put(frames)
 
-                    if self.user_parameters["lsl"]:
-                        lsl.put(frames)
+                    lsl.put(frames)
 
                     if self.user_parameters["verbose"]:
                         sys.stdout.write("{}\n".format(frames[0]))
@@ -192,8 +189,7 @@ class Acquisition:
 
             if file_path:
                 file_writer.stop()
-            if self.user_parameters["lsl"]:
-                lsl.stop()
+            lsl.stop()
 
         finally:
             clean_up_folder(folder_path, file_path)
@@ -202,7 +198,6 @@ class Acquisition:
             self.scientisst.disconnect()
             self.connection_status = ConnectionStatus.DISCONNECTED
             pass
-
 
         sys.exit(0)
 

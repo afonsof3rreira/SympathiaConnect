@@ -39,6 +39,50 @@ class FileWriter(ThreadBuilder):
         self.f.write("#{}\n".format(self.metadata))
         self.f.write("#{}\n".format(header))
 
+        timestamp = datetime.now()
+
+        metadata = {
+            "API version": api_version,
+            "Channels": channels,
+            "Channels labels": get_channel_labels(channels, self.mv),
+            "Device": address,
+            "Firmware version": firmware_version,
+            "Header": get_header(channels, self.mv),
+            "Resolution (bits)": [4, 1, 1, 1, 1] + self.__get_channel_resolutions(),
+            "Sampling rate (Hz)": fs,
+            "Timestamp (ISO 8601)": timestamp.isoformat(),
+        }
+
+        self.f.write("")
+
+    def __get_metadata_SS(self, address, fs, channels, api_version, firmware_version):
+        timestamp = datetime.now()
+
+        ch_to_label = {
+            1: "ACC_x",
+            2: "ACC_y",
+            3: "ACC_z",
+            4: "",
+            5: "",
+            6: "",
+            7: "EDA"
+        }
+
+        metadata = {
+            "API version": api_version,
+            "Channels": channels,
+            "Channels labels": get_channel_labels(channels, self.mv),
+            "Device": address,
+            "Firmware version": firmware_version,
+            "Header": get_header(channels, self.mv),
+            "Resolution (bits)": [4, 1, 1, 1, 1] + self.__get_channel_resolutions(),
+            "Sampling rate (Hz)": fs,
+            "Timestamp": timestamp.timestamp(),
+            "ISO 8601": timestamp.isoformat(),
+        }
+
+        return metadata
+
     def __get_metadata(self, address, fs, channels, api_version, firmware_version):
         timestamp = datetime.now()
         metadata = {
@@ -107,6 +151,6 @@ def get_channel_labels(channels, mv):
 
 
 def get_header(channels, mv):
-    header = ["NSeq", "DAC", "I1", "I2", "O1", "O2"]
+    header = ["NSeq", "DAC", "O2"]
     header += get_channel_labels(channels, mv)
     return header

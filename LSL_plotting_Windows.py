@@ -21,6 +21,7 @@ class LSLPlotWindow(QMainWindow):
 
         self.enable_eda = eda_enable
         self.enable_acc = acc_enable
+        self.enable_acc = False # TODO: FORCE TURN-OFF TO AVOID ISSUES FOR NOW
 
         self.ld_mode = ld_mode
 
@@ -122,8 +123,8 @@ class LSLPlotWindow(QMainWindow):
             self.set_dark_mode()
 
         if self.enable_eda:
-            self.eda_worker = EDAWorker(sample_rate, eda_enable=eda_enable, acc_enable=acc_enable, window_size=20)
-            self.dac_worker = DACWorker(sample_rate, eda_enable=eda_enable, acc_enable=acc_enable, window_size=None)
+            self.eda_worker = EDAWorker(sample_rate, mode=self.mode, window_size=20)
+            self.dac_worker = DACWorker(sample_rate, mode=self.mode, window_size=None)
 
             self.eda_worker.signal.connect(self.plot_eda)  # Connect signal to update plot
             self.dac_worker.signal.connect(self.plot_dac)  # Connect signal to update plot
@@ -135,7 +136,7 @@ class LSLPlotWindow(QMainWindow):
             self.dac_worker.start()  # Start the worker thread
 
         if self.enable_acc:
-            self.acc_worker = ACCWorker(sample_rate, eda_enable=eda_enable, acc_enable=acc_enable, window_size=5)
+            self.acc_worker = ACCWorker(sample_rate, mode=self.mode, window_size=5)
             self.acc_worker.signal.connect(self.plot_acc)  # Connect signal to update plot
 
             self.acc_c = 0
@@ -164,22 +165,12 @@ class LSLPlotWindow(QMainWindow):
 
                 self.lines[type].set_xdata(t_arr)
 
-
             else:
                 sample_arr = np.array(range(len(self.data_series[type])))
                 t_arr = sample_arr * self.vieweing_period
                 self.lines[type].set_xdata(t_arr)
 
             self.lines[type].set_ydata(self.data_series[type])
-
-            # Create time ticks: every 5 seconds, we need 0, 5, 10, 15, ..., 75
-            #ticks = self.axs[type].get_xticks()
-            #tick_labels = [f"{tick:.1f}" for tick in ticks]
-
-            # Set tick positions and labels on the x-axis
-            #self.axs[type].set_xticks(ticks)
-            #self.axs[type].set_xticklabels(tick_labels)
-
 
             # Update plot limits and redraw
             self.axs[type].relim()
@@ -203,7 +194,6 @@ class LSLPlotWindow(QMainWindow):
                 t_arr = sample_arr * self.vieweing_period
 
                 self.lines[type].set_xdata(t_arr)
-
 
             else:
                 sample_arr = np.array(range(len(self.data_series[type])))
@@ -232,7 +222,6 @@ class LSLPlotWindow(QMainWindow):
                 t_arr = sample_arr * self.vieweing_period
 
                 self.lines[type].set_xdata(t_arr)
-
 
             else:
                 sample_arr = np.array(range(len(self.data_series[type])))

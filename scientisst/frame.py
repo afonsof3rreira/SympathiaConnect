@@ -53,9 +53,9 @@ class Frame:
         return "{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
             self.seq,
             self.dac,
-            self.digital[0],
-            self.digital[1],
-            self.digital[2],
+            # self.digital[0],
+            # self.digital[1],
+            # self.digital[2],
             self.digital[3],
             "\t".join(values),
         )
