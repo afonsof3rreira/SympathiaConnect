@@ -15,6 +15,7 @@ if __name__ == "__main__":
     create_folder(get_root_project_path(debug=True), "Signals")
 
     version_number = "1.0.0-beta"
+    # comment
 
     if os_type == 'Windows':
         App_UI_Windows(version=version_number)

@@ -11,7 +11,6 @@ from LSL_plotting_Windows import LSLPlotWindow, open_lsl_plot
 from acquisition_Windows import Acquisition
 from saving_preferences import saving_preferences, update_fields
 from scientisst import *
-from updates import UpdateSection
 from utilities import load_icon, get_root_project_path, colors, read_params, write_params, open_user_guide
 from utils.input_validation import validate_time_in, validate_fs_in, validate_dac_in
 from utils.scientisst_actions import led_pulse
@@ -188,7 +187,6 @@ class App(tk.Frame):
             command=self.launch_receive_and_plot  # Directly call the function you want
         )
 
-        self.update_checker = UpdateSection(self, self.ld_theme)
 
         self.help_ = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label='Settings', menu=self.help_)
