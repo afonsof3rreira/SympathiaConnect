@@ -1,13 +1,18 @@
+import copy
 import sys
 from scientisst.scientisst import AX1, AX2
 from sense_src.thread_builder import ThreadBuilder
 from datetime import datetime
 
+channels_to_labels = {
+    3: 'ACC_Zp',
+    1: 'ACC_Xn',
+    AX1: 'EDA',
+}
 
 class FileWriter(ThreadBuilder):
     def __init__(
-        self, filename, address, fs, channels, mv, api_version, firmware_version
-    ):
+        self, filename, address, fs, channels, mv, api_version, firmware_version):
         super().__init__()
         self.filename = filename
         self.mv = mv
@@ -34,82 +39,56 @@ class FileWriter(ThreadBuilder):
         self.f = open(self.filename, "w")
         sys.stdout.write("Saving data to {}\n".format(self.filename))
 
-        header = "\t".join(self.metadata["Header"])
+        header = "\t".join(get_header(self.channels))
 
         self.f.write("#{}\n".format(self.metadata))
         self.f.write("#{}\n".format(header))
 
-        timestamp = datetime.now()
-
-        metadata = {
-            "API version": api_version,
-            "Channels": channels,
-            "Channels labels": get_channel_labels(channels, self.mv),
-            "Device": address,
-            "Firmware version": firmware_version,
-            "Header": get_header(channels, self.mv),
-            "Resolution (bits)": [4, 1, 1, 1, 1] + self.__get_channel_resolutions(),
-            "Sampling rate (Hz)": fs,
-            "Timestamp (ISO 8601)": timestamp.isoformat(),
-        }
-
-        self.f.write("")
-
-    def __get_metadata_SS(self, address, fs, channels, api_version, firmware_version):
-        timestamp = datetime.now()
-
-        ch_to_label = {
-            1: "ACC_x",
-            2: "ACC_y",
-            3: "ACC_z",
-            4: "",
-            5: "",
-            6: "",
-            7: "EDA"
-        }
-
-        metadata = {
-            "API version": api_version,
-            "Channels": channels,
-            "Channels labels": get_channel_labels(channels, self.mv),
-            "Device": address,
-            "Firmware version": firmware_version,
-            "Header": get_header(channels, self.mv),
-            "Resolution (bits)": [4, 1, 1, 1, 1] + self.__get_channel_resolutions(),
-            "Sampling rate (Hz)": fs,
-            "Timestamp": timestamp.timestamp(),
-            "ISO 8601": timestamp.isoformat(),
-        }
-
-        return metadata
 
     def __get_metadata(self, address, fs, channels, api_version, firmware_version):
         timestamp = datetime.now()
-        metadata = {
-            "API version": api_version,
-            "Channels": channels,
-            "Channels labels": get_channel_labels(channels, self.mv),
-            "Device": address,
-            "Firmware version": firmware_version,
-            "Header": get_header(channels, self.mv),
-            "Resolution (bits)": [4, 1, 1, 1, 1] + self.__get_channel_resolutions(),
-            "Sampling rate (Hz)": fs,
-            "Timestamp": timestamp.timestamp(),
-            "ISO 8601": timestamp.isoformat(),
-        }
-        if self.mv:
-            metadata["Channels indexes raw"] = list(
-                map(lambda x: (x - 1) * 2 + 6, channels)
-            )
-            metadata["Channels indexes mV"] = list(
-                map(lambda x: (x - 1) * 2 + 7, channels)
-            )
-        else:
-            metadata["Channels indexes"] = list(map(lambda x: x + 5, channels))
 
-        sorted_metadata = {}
-        for key in sorted(metadata):
-            sorted_metadata[key] = metadata[key]
+        mode_ = 'Sympathia Sense'
+
+        if mode_ == 'Sympathia Sense':
+            metadata = {
+                "Device": address,
+                "Channels (labels)": [channels_to_labels[ch] for ch in channels],
+                "Resolution (bits)": [36, 1, 1, 1, 1] + self.__get_channel_resolutions(),
+                "Sampling rate (Hz)": fs,
+                "Timestamp (ISO 8601)": timestamp.isoformat(),
+                "Channels (hardware)": channels,
+                "Firmware version": firmware_version,
+                "API version": api_version,
+            }
+            sorted_metadata = metadata
+
+        else:
+            metadata = {
+                "API version": api_version,
+                "Channels": channels,
+                "Channels labels": get_channel_labels(channels, self.mv),
+                "Device": address,
+                "Firmware version": firmware_version,
+                "Header": get_header(channels, self.mv),
+                "Resolution (bits)": [4, 1, 1, 1, 1] + self.__get_channel_resolutions(),
+                "Sampling rate (Hz)": fs,
+                "Timestamp": timestamp.timestamp(),
+                "ISO 8601": timestamp.isoformat(),
+            }
+            if self.mv:
+                metadata["Channels indexes raw"] = list(
+                    map(lambda x: (x - 1) * 2 + 6, channels)
+                )
+                metadata["Channels indexes mV"] = list(
+                    map(lambda x: (x - 1) * 2 + 7, channels)
+                )
+            else:
+                metadata["Channels indexes"] = list(map(lambda x: x + 5, channels))
+
+            sorted_metadata = {}
+            for key in sorted(metadata):
+                sorted_metadata[key] = metadata[key]
 
         return sorted_metadata
 
@@ -147,10 +126,38 @@ def get_channel_labels(channels, mv):
             else:
                 channel_labels += ["AI{}_raw".format(ch)]
                 channel_labels += ["AI{}_mv".format(ch)]
+
     return channel_labels
 
+def get_header(channels):
 
-def get_header(channels, mv):
-    header = ["NSeq", "DAC", "O2"]
-    header += get_channel_labels(channels, mv)
+    if AX1 in channels:
+
+        header = ["NSeq", "O2", "AX1", "DAC"]
+
+        channels_tmp = copy.copy(channels)
+        channels_tmp.remove(7)
+
+        for ch in channels_tmp:
+            header += [channels_to_labels[ch]]
+    else:
+        header = ["NSeq", "O2"]
+
+        for ch in channels:
+            header += [channels_to_labels[ch]]
+
+    return header
+
+def get_header_sympathia(channels):
+
+    if AX1 in channels:
+        header = ["NSeq", "O2", "DAC"]
+        for ch in channels:
+            header += channels_to_labels[ch]
+
+    else:
+        header = ["NSeq", "O2"]
+        for ch in channels:
+            header += channels_to_labels[ch]
+
     return header

@@ -6,12 +6,15 @@ from sense_src.thread_builder import ThreadBuilder
 
 
 class StreamLSL(ThreadBuilder):
-    def __init__(self, channels, fs, address, eda_enable):
+    def __init__(self, fs, address, eda_enable, acc_enable):
         super().__init__()
+
+        no_channels = 0
         if eda_enable:
-            no_channels = len(channels) + 1
-        else:
-            no_channels = len(channels)
+            no_channels += 2
+
+        if acc_enable:
+            no_channels += 2
 
         self.info = StreamInfo(
             "ScientISST Sense",
@@ -22,6 +25,7 @@ class StreamLSL(ThreadBuilder):
             address,
         )
         self.eda_enable = eda_enable
+        self.acc_enable = acc_enable
 
     def start(self):
         # make outlet
@@ -35,17 +39,34 @@ class StreamLSL(ThreadBuilder):
 
         super().start()
 
+    # analog_section = frame.a
+    #
+    # if self.eda_enable:  # add DAC if EDA is enabled
+    #     dac_value = frame.dac
+    #     analog_section.append(dac_value)
+    #
+    # chunk.append(analog_section)
+
     def thread_method(self, frames):
         chunk = []
 
         for frame in frames:
-            analog_section = frame.a[:] # [:] is needed so that the list is being copied without wrongfully modifying the reference (leads to duplicate dac entry in stored data)
 
-            if self.eda_enable:  # add DAC if EDA is enabled
-                dac_value = frame.dac
-                analog_section.append(dac_value)
+            reading = []
 
-            chunk.append(analog_section)
+            if self.eda_enable:
+
+                eda_signal = frame.ax1
+                dac_signal = frame.dac
+                reading.append(eda_signal)
+                reading.append(dac_signal)
+
+            if self.acc_enable:
+                acc_signals = frame.a[:]  # [:] is needed so that the list is being copied without wrongfully modifying the reference (leads to duplicate dac entry in stored data)
+
+                reading.extend(acc_signals)
+
+            chunk.append(reading)
 
         num_frames = len(chunk)
 

@@ -21,7 +21,6 @@ class LSLPlotWindow(QMainWindow):
 
         self.enable_eda = eda_enable
         self.enable_acc = acc_enable
-        self.enable_acc = False # TODO: FORCE TURN-OFF TO AVOID ISSUES FOR NOW
 
         self.ld_mode = ld_mode
 

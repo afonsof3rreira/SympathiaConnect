@@ -15,6 +15,15 @@ class ACCWorker(QThread):
 
         self.ma_buffer = []  # Unified buffer name for moving average
 
+        # mode == 0 > ACC only
+        # mode == 1 > EDA and DAC only
+        # mode == 2 > ALL
+
+        if mode == 0:
+            self.index = 0
+        if mode == 2:
+            self.index = 2
+
     def init_lsl_stream(self):
         streams = resolve_stream()
         self.inlet = StreamInlet(streams[0])
@@ -29,7 +38,7 @@ class ACCWorker(QThread):
 
                 if self.window_size is not None:
                     # Append the current sample to the buffer
-                    self.ma_buffer.append(sample[0])
+                    self.ma_buffer.append(sample[self.index])
 
                     # If the buffer exceeds the window size, remove the oldest sample
                     if len(self.ma_buffer) > self.window_size:
@@ -60,10 +69,7 @@ class EDAWorker(QThread):
         # mode == 1 > EDA and DAC only
         # mode == 2 > ALL
 
-        if mode == 1:
-            self.index = 0
-        if mode == 2:
-            self.index = 1
+        self.index = 0
 
         self.window_size = window_size  # Number of samples for the moving average
 
@@ -117,10 +123,7 @@ class DACWorker(QThread):
         # mode == 1 > EDA and DAC only
         # mode == 2 > ALL
 
-        if mode == 1:
-            self.index = 1
-        if mode == 2:
-            self.index = 2
+        self.index = 1
 
         self.window_size = window_size  # Number of samples for the moving average
 

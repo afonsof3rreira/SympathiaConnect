@@ -26,47 +26,65 @@ class Frame:
             If all channels are active, `mv` will have 8 elements: 6 AIs and 2 AXs.
     """
 
-    digital = [0] * 4
+    digital = [0] * 1
     seq = -1
-    dac = [0]
 
-    def __init__(self, num_channels):
+    def __init__(self, num_channels, EDA_enabled=True):
+
         self.a = [0] * num_channels
         self.mv = [-1] * num_channels
-        self.dac = 0
 
-    def to_map(self):
-        return {
-            "sequence": self.seq,
-            "analog": self.a,
-            "digital": self.digital,
-            "mv": self.mv,
-            "dac": self.dac
-        }
+        if EDA_enabled:
+            self.a = [0] * (num_channels - 1)
+            self.mv = [-1] * (num_channels - 1)
+            self.ax1 = 0
+            self.dac = 0
+
+        self.EDA_enabled = EDA_enabled
 
     def __str__(self):
+
         if self.mv[0] != -1:
             values = [str(val) for pair in zip(self.a, self.mv) for val in pair]
         else:
             values = map(str, self.a)
 
-        return "{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
-            self.seq,
-            self.dac,
-            # self.digital[0],
-            # self.digital[1],
-            # self.digital[2],
-            self.digital[3],
-            "\t".join(values),
-        )
+        if self.EDA_enabled:
+            return "{}\t{}\t{}\t{}\t{}".format(
+                self.seq,
+                self.digital[0],
+                self.ax1,
+                self.dac,
+                "\t".join(values),
+            )
+
+        else:
+            return "{}\t{}\t{}".format(
+                self.seq,
+                self.digital[0],
+                "\t".join(values),
+            )
 
     def to_matrix(self):
-        if self.mv[0] != -1:
-            return (
-                [self.seq]
-                + [self.dac]
-                + self.digital
-                + [val for pair in zip(self.a, self.mv) for val in pair]
-            )
+
+        if self.EDA_enabled:
+            if self.mv[0] != -1:
+                return (
+                    [self.seq]
+                    + self.digital
+                    + [self.ax1]
+                    + [self.dac]
+                    + [val for pair in zip(self.a, self.mv) for val in pair]
+                )
+            else:
+                return [self.seq] + self.digital + [self.ax1] + [self.dac] + self.a
+
         else:
-            return [self.seq] + [self.dac] + self.digital + self.a
+            if self.mv[0] != -1:
+                return (
+                    [self.seq]
+                    + self.digital
+                    + [val for pair in zip(self.a, self.mv) for val in pair]
+                )
+            else:
+                return [self.seq] + self.digital + self.a

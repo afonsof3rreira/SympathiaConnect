@@ -187,7 +187,6 @@ class App(tk.Frame):
             command=self.launch_receive_and_plot  # Directly call the function you want
         )
 
-
         self.help_ = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label='Settings', menu=self.help_)
         self.help_.add_command(label='Saving preferences', command=lambda: saving_preferences(self, self.ld_theme))

@@ -91,7 +91,6 @@ class Acquisition:
 
         if self.user_parameters["address"]:
             address = self.user_parameters["address"]
-            print(address)
 
         else:
             address = DevicePicker().select_device()
@@ -99,14 +98,11 @@ class Acquisition:
         channels = []
         if self.user_parameters['ACC_enable']:
             channels.append(1)
-            channels.append(2)
+            # channels.append(2) not yet working well
             channels.append(3)
 
         if self.user_parameters['EDA_enable']:
             channels.append(7)
-
-        print("Channels are: ")
-        print(channels)
 
         # address, fs, duration OK
         self.connection_status = ConnectionStatus.CONNECTING
@@ -134,10 +130,10 @@ class Acquisition:
             from sense_src.stream_lsl import StreamLSL
 
             lsl = StreamLSL(
-                channels,
                 self.user_parameters["fs"],
                 address,
                 eda_enable=self.user_parameters["EDA_enable"],
+                acc_enable=self.user_parameters["ACC_enable"]
             )
 
             self.scientisst.start(self.user_parameters["fs"], channels)
@@ -168,7 +164,7 @@ class Acquisition:
 
             try:
                 if self.user_parameters["verbose"]:
-                    header = "\t".join(get_header(channels, False)) + "\n"
+                    header = "\t".join(get_header(channels)) + "\n"
                     sys.stdout.write(header)
 
                 while not stop_event.is_set():
@@ -176,7 +172,7 @@ class Acquisition:
                     if 7 in channels:
                         frames = self.scientisst.read(convert=False, curr_dac_value=self.user_parameters["dac"])
 
-                        idx_to_extract = 6 + len(channels) - 1
+                        idx_to_extract = 2
 
                         self.user_parameters["dac"] = self.scientisst.dac_control(self.user_parameters["dac"], frames, tick,
                                                                                   idx_to_extract=idx_to_extract)
@@ -211,7 +207,8 @@ class Acquisition:
             self.emit_brief_status(ConnectionStatus.ACQUISITION_FINISHED, 1000)
 
         finally:
-            clean_up_folder(folder_path, file_path)
+            if os.path.exists(file_path):
+                clean_up_folder(folder_path, file_path)
             self.scientisst.disconnect()
             pass
 

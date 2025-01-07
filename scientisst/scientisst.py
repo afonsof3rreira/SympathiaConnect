@@ -245,15 +245,15 @@ class ScientISST:
 
         if tick % 5 == 0:
 
-            dac_vals_arr = unpack_frame_arr(frames, idx_extract=idx_to_extract)
-            adc_ext_read = np.mean(dac_vals_arr)
+            adc_ext_frames = unpack_frame_arr(frames, idx_extract=idx_to_extract)
+            adc_ext_read = np.mean(adc_ext_frames)
 
             dac_condition = 0 < dac_value < 255
             if (adc_ext_read < 300000) and dac_condition:
                 dac_value -= 1
             elif (adc_ext_read > 7000000) and dac_condition:
                 dac_value += 1
-
+            #print("dac val: " + str(dac_value))
             self.dac(dac_value, pwm=True)
 
         return dac_value
@@ -304,18 +304,20 @@ class ScientISST:
             #if curr_dac_value is not None:
             #    f = Frame_UI(self.__num_chs)
             #else:
-            f = Frame(self.__num_chs)
+            f = Frame(self.__num_chs, curr_dac_value is not None)
 
             frames.append(f)
             if self.__api_mode == API_MODE_SCIENTISST:
 
-                if curr_dac_value:
+                if curr_dac_value is not None:
                     f.dac = curr_dac_value
 
                 # Get seq number and IO states
                 f.seq = bf[-2] >> 4 | bf[-1] << 4
-                for i in range(4):
-                    f.digital[i] = 0 if (bf[-3] & (0x80 >> i)) == 0 else 1
+
+                # for i in range(4):
+                #     f.digital[i] = 0 if (bf[-3] & (0x80 >> i)) == 0 else 1
+                f.digital[0] = 0 if (bf[-3] & (0x80 >> 3)) == 0 else 1
 
                 # Get channel values
                 byte_it = 0
@@ -324,17 +326,27 @@ class ScientISST:
                     curr_ch = self.__chs[index]
 
                     # If it's an AX channel
-                    if curr_ch == AX1 or curr_ch == AX2:
-                        f.a[index] = (
+                    if curr_dac_value is not None and curr_ch == AX1:
+
+                        f.ax1 = (
                             int.from_bytes(
                                 bf[byte_it : byte_it + 4], byteorder="little"
                             )
                             & 0xFFFFFF
                         )
                         byte_it += 3
-                        if convert:
-                            f.mv[index] = ((f.a[index]) * (3.3*2) / (pow(2, 24) - 1))*1000
-                            f.mv[index] = round(f.mv[index], 3)
+
+                    # if curr_ch == AX1 or curr_ch == AX2:
+                        # f.a[index] = (
+                        #     int.from_bytes(
+                        #         bf[byte_it : byte_it + 4], byteorder="little"
+                        #     )
+                        #     & 0xFFFFFF
+                        # )
+                        # byte_it += 3
+                        # if convert:
+                        #     f.mv[index] = ((f.a[index]) * (3.3*2) / (pow(2, 24) - 1))*1000
+                        #     f.mv[index] = round(f.mv[index], 3)
 
                     # If it's an AI channel
                     else:

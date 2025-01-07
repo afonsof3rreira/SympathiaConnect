@@ -161,7 +161,7 @@ class Acquisition:
                     if 7 in channels:
                         frames = self.scientisst.read(convert=False, curr_dac_value=self.user_parameters["dac"])
 
-                        idx_to_extract = 6 + len(channels) - 1
+                        idx_to_extract = 2
 
                         self.user_parameters["dac"] = self.scientisst.dac_control(self.user_parameters["dac"], frames, tick,
                                                                                   idx_to_extract=idx_to_extract)
