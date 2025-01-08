@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/scientisst-sense-UI.iml" filepath="$PROJECT_DIR$/.idea/scientisst-sense-UI.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/SympathiaConnect.iml" filepath="$PROJECT_DIR$/.idea/SympathiaConnect.iml" />
     </modules>
   </component>
 </project>
