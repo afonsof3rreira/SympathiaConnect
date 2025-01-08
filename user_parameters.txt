@@ -10,7 +10,7 @@
 # All trademarks and registered trademarks are the property of their respective owners.
 # ==========================================================================================================
 
-address=COM4
+address=COM3
 # address: The communication address for connecting to the ScientISST Sense device.
 # For BTH communication, the address is the BTH MAC address for Linux, serial port address for Mac, or COM port for Windows.
 
@@ -20,7 +20,7 @@ fs=20
 ACC_enable=true
 # ACC_enable: Enables the 1-axial Accelerometer when set to true, and disables it when set to false. Default is false.
 
-EDA_enable=false
+EDA_enable=true
 # EDA_enable: Enables the Electrodermal activity (EDA) Sensor when set to true, and disables it when set to false. Default is false.
 
 duration_h=0

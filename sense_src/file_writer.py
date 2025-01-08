@@ -133,7 +133,7 @@ def get_header(channels):
 
     if AX1 in channels:
 
-        header = ["NSeq", "O2", "AX1", "DAC"]
+        header = ["NSeq", "O2", "EDA", "DAC"]
 
         channels_tmp = copy.copy(channels)
         channels_tmp.remove(7)
