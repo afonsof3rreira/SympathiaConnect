@@ -14,7 +14,7 @@ address=COM3
 # address: The communication address for connecting to the ScientISST Sense device.
 # For BTH communication, the address is the BTH MAC address for Linux, serial port address for Mac, or COM port for Windows.
 
-fs=20
+fs=1000
 # fs: The sampling frequency in Hz. Defines how often the data is sampled from the device. Default is 1000 Hz.
 
 ACC_enable=true
@@ -26,10 +26,10 @@ EDA_enable=true
 duration_h=0
 # duration_h: The duration hours for data acquisition. The default is 0 hours.
 
-duration_m=0
+duration_m=2
 # duration_m: The duration minutes for data acquisition. The default is 1 minute.
 
-duration_s=30
+duration_s=0
 # duration_s: The duration seconds for data acquisition. The default is 0 seconds.
 
 verbose=true

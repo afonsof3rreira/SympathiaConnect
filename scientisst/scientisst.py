@@ -214,15 +214,9 @@ class ScientISST:
             cmd = 0x01
         cmd |= chMask << 8
 
-        print("binary representation of the channel sent command")
-        print(cmd)
-
         self.__send(cmd)
 
         self.__packet_size = self.__getPacketSize()
-
-        print("packet size")
-        print(self.__packet_size)
 
         self.__bytes_to_read = self.__packet_size * max(
             sample_rate // reads_per_second, 1
@@ -253,7 +247,7 @@ class ScientISST:
                 dac_value -= 1
             elif (adc_ext_read > 7000000) and dac_condition:
                 dac_value += 1
-            #print("dac val: " + str(dac_value))
+
             self.dac(dac_value, pwm=True)
 
         return dac_value
@@ -321,6 +315,7 @@ class ScientISST:
 
                 # Get channel values
                 byte_it = 0
+
                 for i in range(self.__num_chs):
                     index = self.__num_chs - 1 - i
                     curr_ch = self.__chs[index]
@@ -512,7 +507,6 @@ class ScientISST:
             raise ContactingDeviceError()
 
         state = State()
-        print(result)
 
         # for(int i = 0; i < 6; i++)
         # state.analog[i] = statex.analog[i];

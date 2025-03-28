@@ -15,9 +15,9 @@ class ACCWorker(QThread):
 
         self.ma_buffer = []  # Unified buffer name for moving average
 
-        # mode == 0 > ACC only
+        # mode == 0 > ACC only (we select the first signal, ACC X)
         # mode == 1 > EDA and DAC only
-        # mode == 2 > ALL
+        # mode == 2 > ALL (in this case, since EDA and DAC are first in the table, the index is 2)
 
         if mode == 0:
             self.index = 0
@@ -66,8 +66,8 @@ class EDAWorker(QThread):
         self.running = True
 
         # mode == 0 > ACC only
-        # mode == 1 > EDA and DAC only
-        # mode == 2 > ALL
+        # mode == 1 > EDA and DAC only (always index 0)
+        # mode == 2 > ALL (always index 0)
 
         self.index = 0
 
@@ -120,8 +120,8 @@ class DACWorker(QThread):
         self.running = True
 
         # mode == 0 > ACC only
-        # mode == 1 > EDA and DAC only
-        # mode == 2 > ALL
+        # mode == 1 > EDA and DAC only (always index 1)
+        # mode == 2 > ALL (always index 1)
 
         self.index = 1
 

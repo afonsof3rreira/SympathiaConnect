@@ -55,7 +55,7 @@ class Acquisition:
 
             except Exception as e:
                 traceback.print_exc()
-                clean_up_folder(folder_path, file_path)
+                #clean_up_folder(folder_path, file_path)
                 ac_index += 1
 
             if self.connection_error:
@@ -81,7 +81,9 @@ class Acquisition:
 
         channels = []
         if self.user_parameters['ACC_enable']:
-            channels.append(5)
+            channels.append(1)  # ACC X
+            channels.append(3)  # ACC Y
+            channels.append(5)  # ACC Z
 
         if self.user_parameters['EDA_enable']:
             channels.append(7)

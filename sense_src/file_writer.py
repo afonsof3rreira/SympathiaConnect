@@ -5,8 +5,9 @@ from sense_src.thread_builder import ThreadBuilder
 from datetime import datetime
 
 channels_to_labels = {
-    3: 'ACC_Zp',
-    1: 'ACC_Xn',
+    5: 'ACC_Z',
+    3: 'ACC_Y',
+    1: 'ACC_X',
     AX1: 'EDA',
 }
 
@@ -31,6 +32,7 @@ class FileWriter(ThreadBuilder):
             self.f.close()
 
     def thread_method(self, frames):
+        print("recv frames: " + str("\n".join(map(str, frames)) + "\n"))
         self.f.write("\n".join(map(str, frames)) + "\n")
 
     def __init_file(
@@ -130,6 +132,7 @@ def get_channel_labels(channels, mv):
     return channel_labels
 
 def get_header(channels):
+    # testing comment
 
     if AX1 in channels:
 

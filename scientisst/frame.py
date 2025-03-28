@@ -44,20 +44,28 @@ class Frame:
 
     def __str__(self):
 
-        if self.mv[0] != -1:
-            values = [str(val) for pair in zip(self.a, self.mv) for val in pair]
-        else:
-            values = map(str, self.a)
+        if self.a:
+            if self.mv[0] != -1:
+                values = [str(val) for pair in zip(self.a, self.mv) for val in pair]
+            else:
+                values = map(str, self.a)
 
         if self.EDA_enabled:
-            return "{}\t{}\t{}\t{}\t{}".format(
-                self.seq,
-                self.digital[0],
-                self.ax1,
-                self.dac,
-                "\t".join(values),
-            )
-
+            if self.a:
+                return "{}\t{}\t{}\t{}\t{}".format(
+                    self.seq,
+                    self.digital[0],
+                    self.ax1,
+                    self.dac,
+                    "\t".join(values),
+                )
+            else:
+                return "{}\t{}\t{}\t{}".format(
+                    self.seq,
+                    self.digital[0],
+                    self.ax1,
+                    self.dac,
+                )
         else:
             return "{}\t{}\t{}".format(
                 self.seq,
@@ -68,16 +76,25 @@ class Frame:
     def to_matrix(self):
 
         if self.EDA_enabled:
-            if self.mv[0] != -1:
-                return (
-                    [self.seq]
-                    + self.digital
-                    + [self.ax1]
-                    + [self.dac]
-                    + [val for pair in zip(self.a, self.mv) for val in pair]
-                )
+            if self.a:
+                if self.mv[0] != -1:
+                    return (
+                        [self.seq]
+                        + self.digital
+                        + [self.ax1]
+                        + [self.dac]
+                        + [val for pair in zip(self.a, self.mv) for val in pair]
+                    )
+                else:
+                    return [self.seq] + self.digital + [self.ax1] + [self.dac] + self.a
+
             else:
-                return [self.seq] + self.digital + [self.ax1] + [self.dac] + self.a
+                return (
+                        [self.seq]
+                        + self.digital
+                        + [self.ax1]
+                        + [self.dac]
+                )
 
         else:
             if self.mv[0] != -1:

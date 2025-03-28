@@ -14,7 +14,7 @@ class StreamLSL(ThreadBuilder):
             no_channels += 2
 
         if acc_enable:
-            no_channels += 2
+            no_channels += 3
 
         self.info = StreamInfo(
             "ScientISST Sense",

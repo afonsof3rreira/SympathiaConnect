@@ -41,7 +41,17 @@ def get_available_ports(os_type: str):
 
     # Windows
     if os_type == 'Windows':
-        port_pair = get_COM_ports_Windows()
+        ports = serial.tools.list_ports.comports()
+
+        for port in ports:
+            try:
+                #print(port.description)
+                # Check description or device name
+                if any(keyword in port.description for keyword in ["Bluetooth", "BLUETOOTH", "BT", "BLE"]):
+                    port_pair[port.device] = port.device
+                    #print(port.device)
+            except Exception:
+                pass
 
     # Linux and MacOS
     elif os_type in ["MacOS", "Linux"]:
@@ -58,6 +68,7 @@ def get_available_ports(os_type: str):
                     short_addr = 'ScientISST' + short_addr
 
                     port_pair[short_addr] = port_name
+
                 ser.close()
             except serial.SerialException:
                 pass
@@ -74,7 +85,7 @@ def _reset_BT():
     bt_is_back = False
 
     try:
-        kill_bt(password='7734')
+        kill_bt(password='1234')
         while not bt_is_back:
             time.sleep(0.5)
             bt_is_back = check_bt()

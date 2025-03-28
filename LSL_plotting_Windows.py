@@ -72,8 +72,6 @@ class LSLPlotWindow(QMainWindow):
 
         self.vieweing_period = self.vieweing_period / 1000
 
-        print("viewing period is: " + str(self.vieweing_period))
-
         self.window_t_range = 15  # seconds
 
         self.max_data_points = self.vieweing_rate * self.window_t_range

@@ -36,8 +36,9 @@ class App(tk.Frame):
 
         super().__init__(master)
 
-        self.os_type = os_type
         self.scientisst = None
+
+        self.os_type = os_type
         self.root_path = root_path
         self.version = version
 
@@ -372,10 +373,11 @@ class App(tk.Frame):
         # Create the start button
         self.start_button = tk.Button(self, text="Start Acquisition", command=self.start_experiment,
                                       font=('Roboto', 12))
+
         self.start_button.grid(row=6 + self.row_offset, column=0, pady=10)
 
         # Create the Pulse button
-        self.pulse_button = tk.Button(self, text="Send Synch Pulse", command=lambda: led_pulse(self.scientisst),
+        self.pulse_button = tk.Button(self, text="Send Synch Pulse", command=lambda: led_pulse(self.ac_process.get_scientisst()),
                                       font=('Roboto', 12))
         self.pulse_button.grid(row=6 + self.row_offset, column=1, pady=10)
         self.pulse_button.config(state=tk.DISABLED)
@@ -482,7 +484,7 @@ class App(tk.Frame):
             else:
                 self.ac_process = Acquisition(self.user_parameters)
 
-            acquisition_cycle_thread = threading.Thread(target=self.ac_process.acquisition_cycle)
+            acquisition_cycle_thread = threading.Thread(target=self.ac_process.acquisition_cycle, daemon=True)
             acquisition_cycle_thread.start()
 
     def on_closing(self):
@@ -492,6 +494,8 @@ class App(tk.Frame):
             self.overwrite_user_params()
         except:
             print("Error: could not save user parameters")
+
+        self.ac_process.cleanup()  # Call the cleanup method
 
         print("closing event")
         self.master.destroy()
@@ -530,26 +534,32 @@ class App(tk.Frame):
         self.plot_process = None
         self.view_plot_var.set(0)  # Uncheck the box
 
+class App_UI_Windows():
 
-def App_UI_Windows(version, debug=False):
-    root_path = get_root_project_path(debug=debug)
-    rsc_path = os.path.join(root_path, 'rsc')
+    def __init__(self, version, debug=False):
 
-    root = tk.Tk()
+        root_path = get_root_project_path(debug=debug)
+        rsc_path = os.path.join(root_path, 'rsc')
 
-    ld_theme = darkdetect.theme()  # Returns 'light' or 'dark'
-    icon_img = load_icon(rsc_path, 'Windows', ld_theme=ld_theme)
-    # Convert the image to a Tkinter compatible format
+        root = tk.Tk()
 
-    # Set the window icon using 'wm' command
-    root.tk.call('wm', 'iconphoto', root._w, ImageTk.PhotoImage(icon_img, master=root))
-    root.rowconfigure(0, weight=1)
-    root.title("Sympathia Connect")
+        ld_theme = darkdetect.theme()  # Returns 'light' or 'dark'
+        icon_img = load_icon(rsc_path, 'Windows', ld_theme=ld_theme)
+        # Convert the image to a Tkinter compatible format
 
-    app = App(master=root, version=version, root_path=root_path, os_type='Windows', icon_file=icon_img, ld_theme=ld_theme)
-    app.update_connection_status()
+        # Set the window icon using 'wm' command
+        root.tk.call('wm', 'iconphoto', root._w, ImageTk.PhotoImage(icon_img, master=root))
+        root.rowconfigure(0, weight=1)
+        root.title("Sympathia Connect")
 
-    root.geometry("500x475")  # Set the fixed size of the window (width x height)
-    root.minsize(width=415, height=375)
+        self.app = App(master=root, version=version, root_path=root_path, os_type='Windows', icon_file=icon_img, ld_theme=ld_theme)
+        self.app.update_connection_status()
 
-    app.mainloop()
+        root.geometry("500x475")  # Set the fixed size of the window (width x height)
+        root.minsize(width=415, height=375)
+
+    def get_app(self):
+        return self.app
+
+    def cleanup(self):
+        self.app.on_closing()
