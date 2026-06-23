@@ -242,10 +242,11 @@ class ScientISST:
             adc_ext_frames = unpack_frame_arr(frames, idx_extract=idx_to_extract)
             adc_ext_read = np.mean(adc_ext_frames)
 
-            dac_condition = 0 < dac_value < 255
-            if (adc_ext_read < 300000) and dac_condition:
+            dac_condition_lower = 0 < dac_value
+            dac_condition_upper = dac_value < 254
+            if (adc_ext_read < 300000) and dac_condition_lower:
                 dac_value -= 1
-            elif (adc_ext_read > 7000000) and dac_condition:
+            elif (adc_ext_read > 7000000) and dac_condition_upper:
                 dac_value += 1
 
             self.dac(dac_value, pwm=True)

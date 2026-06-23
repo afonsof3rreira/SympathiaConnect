@@ -71,8 +71,6 @@ class App(tk.Frame):
                 "duration_h": 0,
                 "duration_m": 1,
                 "duration_s": 0,
-                "lsl": True,
-                "version": None,
                 "verbose": None,
                 "dac": 165,
                 "auto_load_plot": True,
@@ -81,6 +79,9 @@ class App(tk.Frame):
                 "prefix": "",
                 "suffix": ""
             }
+
+        if os.path.exists(os.path.join(self.user_parameters["directory"], "Signals")):
+            self.user_parameters["directory"] = os.path.join(self.user_parameters["directory"], "Signals")
 
         # Track the state of the checkbox
         self.view_plot_var = tk.BooleanVar(value=False)  # Initially off
@@ -223,31 +224,29 @@ class App(tk.Frame):
     def update_bt_dropdown(self):
 
         # Get the latest Bluetooth devices list
-        self.bt_devices_pair = get_available_ports(self.os_type)
+        self.bt_devices_list = get_available_ports(self.os_type)
 
         # if dict is not empty
-        if self.bt_devices_pair:
+        if self.bt_devices_list:
 
             # if the previosuly used device is On, then it should be auto-selected
-            for k, v in self.bt_devices_pair.items():
-                if self.user_parameters["address"] == v:
-                    self.bt_var.set(k)
+            for port_name in self.bt_devices_list:
+                if self.user_parameters["address"] == port_name:
+                    self.bt_var.set(port_name)
 
             # else, it should be the first showing up
             else:
-                self.bt_var.set(list(self.bt_devices_pair.keys())[0])
-
-            bt_devices_pair = list(self.bt_devices_pair.keys())
+                self.bt_var.set(self.bt_devices_list[0])
 
         # else, empty
         else:
             self.bt_var.set("No Dev. Found")
-            bt_devices_pair = ['No Dev. Found']
+            self.bt_devices_list.append("No Dev. Found")
 
         print(self.bt_var.get())
 
         # Create OptionMenu with updated device list
-        self.bt_dropdown = tk.OptionMenu(self, self.bt_var, *bt_devices_pair, command=self.on_bt_selected)
+        self.bt_dropdown = tk.OptionMenu(self, self.bt_var, *self.bt_devices_list, command=self.on_bt_selected)
 
         self.bt_dropdown.grid(row=1 + self.row_offset, column=1)
         self.bt_dropdown.config(font=('Roboto', 12, 'bold'))
@@ -267,8 +266,7 @@ class App(tk.Frame):
         print(f"Selected Bluetooth Device: {selected_device}")
         # Update the user parameters with the selected device
 
-        self.user_parameters["address"] = self.bt_devices_pair[selected_device]
-        print(self.user_parameters)
+        self.user_parameters["address"] = selected_device
 
         # Optionally, set the bt_var to the selected device as well
         self.bt_var.set(selected_device)
@@ -488,14 +486,20 @@ class App(tk.Frame):
             acquisition_cycle_thread.start()
 
     def on_closing(self):
+
         update_fields(self)
 
         try:
             self.overwrite_user_params()
-        except:
+        except Exception as e:
+            print("Exception:", e)
             print("Error: could not save user parameters")
 
-        self.ac_process.cleanup()  # Call the cleanup method
+        if hasattr(self, 'ac_process') and self.ac_process is not None:
+            try:
+                self.ac_process.cleanup()
+            except Exception as e:
+                print("Error during cleanup:", e)
 
         print("closing event")
         self.master.destroy()

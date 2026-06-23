@@ -58,6 +58,7 @@ def update_fields(main_app):
         main_app.user_parameters['EDA_enable'] = main_app.eda_var.get()
 
     # First, check if any data in the text boxes is different from the ones in the input
+
     if int(main_app.hour_entry.get()) != main_app.user_parameters['duration_h']:
         main_app.user_parameters['duration_h'] = int(main_app.hour_entry.get())
 
@@ -73,8 +74,8 @@ def update_fields(main_app):
     if int(main_app.dac_value_entry.get()) != main_app.user_parameters['dac']:
         main_app.user_parameters['dac'] = int(main_app.dac_value_entry.get())
 
-    if main_app.bt_devices_pair[main_app.bt_var.get()] != main_app.user_parameters['address']:
-        main_app.user_parameters['address'] = main_app.bt_devices_pair[main_app.bt_var.get()]
+    if main_app.bt_var.get() != main_app.user_parameters['address']:
+        main_app.user_parameters['address'] = main_app.bt_var.get()
 
     if main_app.auto_load_plot_var.get() != main_app.user_parameters['auto_load_plot']:
         main_app.user_parameters['auto_load_plot'] = main_app.auto_load_plot_var.get()

@@ -10,7 +10,7 @@
 # All trademarks and registered trademarks are the property of their respective owners.
 # ==========================================================================================================
 
-address=COM3
+address=COM6
 # address: The communication address for connecting to the ScientISST Sense device.
 # For BTH communication, the address is the BTH MAC address for Linux, serial port address for Mac, or COM port for Windows.
 
@@ -26,7 +26,7 @@ EDA_enable=true
 duration_h=0
 # duration_h: The duration hours for data acquisition. The default is 0 hours.
 
-duration_m=2
+duration_m=5
 # duration_m: The duration minutes for data acquisition. The default is 1 minute.
 
 duration_s=0
@@ -35,7 +35,7 @@ duration_s=0
 verbose=true
 # verbose: A flag to log sent and received bytes. When set to true, detailed logging of the communication is enabled; otherwise, it is disabled. Default is false.
 
-dac=165
+dac=155
 # dac: Possibly a specific parameter related to a Digital-to-Analog Converter (DAC) setting. The value 165 could be an identifier or configuration setting for the DAC used in the acquisition system.
 
 auto_load_plot=true

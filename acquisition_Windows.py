@@ -121,7 +121,6 @@ class Acquisition:
         self.connection_status = ConnectionStatus.CONNECTED
 
     def start_acquisition(self, first_acquisition, folder_path, file_path):
-
         global rt_plot
 
         self.scientisst.dac(self.user_parameters['dac'], pwm=True)
@@ -229,7 +228,6 @@ class Acquisition:
             self.scientisst.disconnect()
             if file_path:
                 self.file_writer.stop()
-                print("STOPPED!")
 
     def cleanup(self):
         print("stopping.....")

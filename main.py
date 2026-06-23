@@ -37,11 +37,10 @@ if __name__ == "__main__":
 
     finally:
 
-        if app is not None:
-
-            app.cleanup()  # Ensure cleanup runs
-            print("Clean up executed.")
-
-            print("Application closed.")
+        # if app is not None:
+        #     print("trying to close")
+        #     app.cleanup()  # Ensure cleanup runs
+        #     print("Clean up executed.")
+        #     print("Application closed.")
 
         sys.exit(0)  # Exit safely

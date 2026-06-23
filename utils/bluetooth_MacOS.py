@@ -37,7 +37,7 @@ def hard_bt_reconnect(user_parameters):
 
 def get_available_ports(os_type: str):
     # Returns a list of available COM ports
-    port_pair = {}
+    port_name_list = []
 
     # Windows
     if os_type == 'Windows':
@@ -48,7 +48,7 @@ def get_available_ports(os_type: str):
                 #print(port.description)
                 # Check description or device name
                 if any(keyword in port.description for keyword in ["Bluetooth", "BLUETOOTH", "BT", "BLE"]):
-                    port_pair[port.device] = port.device
+                    port_name_list.append(port.device)
                     #print(port.device)
             except Exception:
                 pass
@@ -64,16 +64,14 @@ def get_available_ports(os_type: str):
                 ser = serial.Serial(port)
                 port_name = ser.portstr
                 if 'ScientISST' in port_name:  # Check if 'ScientISST' is in the port name
-                    short_addr = port_name.split('ScientISST')[-1]
-                    short_addr = 'ScientISST' + short_addr
 
-                    port_pair[short_addr] = port_name
+                    port_name_list.append(port_name)
 
                 ser.close()
             except serial.SerialException:
                 pass
 
-    return port_pair
+    return port_name_list
 
 def reset_BT():
     bt_reset = threading.Thread(target=_reset_BT)

@@ -23,7 +23,6 @@ def run_scheduled_task(duration, stop_event):
     timer.start()
     return timer
 
-
 def main():
     arg_parser = ArgParser()
     args = arg_parser.args
